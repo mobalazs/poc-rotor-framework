@@ -1,0 +1,124 @@
+
+namespace ViewModels.Carousel
+
+    '''''''''
+    ' UpcomingDetails View Model: Used by Upcoming Carousel
+    '
+    ' props:
+    '   @content {contentNode}
+    '
+    ' dependencies: parentViewModel must be instance of Carousel
+    '
+    '''''''''
+    class UpcomingDetails extends ViewModels.Carousel.DefaultDetails
+
+        props = {
+            shouldShow: false,
+            content: invalid,
+            duration: UI.components.carousel.row.default.card.height / UI.components.carousel.animSpeed / 1000,
+            translation: [UI.components.carousel.row.default.card.width + 30, (UI.components.carousel.row.default.card.height) / 2 + UI.components.carousel.row.default.title.height]
+        }
+
+        override function template() as object
+            return {
+                id: "details",
+                nodeType: "LayoutGroup",
+                fields: {
+                    itemSpacings: [8],
+                    opacity: 0,
+                    vertAlignment: "center",
+                    horizAlignment: "left",
+                    translation: m.props.translation
+                },
+                children: [
+                    {
+                        id: "title",
+                        nodeType: "Label",
+                        fontStyle: UI.fontStyles.H5_aa,
+                        fields: {
+                            width: 510,
+                            color: UI.colors.primary_2,
+                            text: function()
+                                return m.props.content?.title ?? ""
+                            end function
+                        }
+                    }, {
+                        id: "description",
+                        nodeType: "Label",
+                        fontStyle: UI.fontStyles.default_aa,
+                        fields: {
+                            wrap: true,
+                            lineSpacing: 4,
+                            maxLines: 4,
+                            width: 570,
+                            color: UI.colors.secondary_2,
+                            text: function() return m.props.content?.description ?? "" : end function
+                        }
+                    }
+                ]
+            }
+        end function
+
+        sub updateText()
+            m.children.title.refresh("fields.text")
+            m.children.description.refresh("fields.text")
+        end sub
+
+        override sub show()
+            m.viewModelState.isShown = true
+            m.onUpdateView()
+            m.animateVisibility(1, m.props.duration * 2, m.props.duration * 2)
+        end sub
+
+        override sub hide()
+            m.viewModelState.isShown = false
+            m.animateVisibility(0, m.props.duration / 2, 0)
+        end sub
+
+        override sub animateVisibility(opacity, duration, delay)
+            m.animator(`animate-details-show-${m.id}`).create({
+                target: m,
+                duration: m.props.duration * 2,
+                delay: delay,
+                easeFunction: "linear",
+                opacity: opacity,
+                optional: true
+            }).play()
+        end sub
+
+        override sub animateContentChange()
+            m.animator(`animate-details-show-${m.id}`).create({
+                target: m,
+                duration: m.node.opacity * m.props.duration / 2,
+                easeFunction: "linear",
+                opacity: 0,
+                translationTo: [m.props.translation[0] - 50, m.props.translation[1]],
+                delay: m.props.duration,
+                optional: true
+            }).play().observeState({
+                callback: sub(state)
+                    if state = "stopped"
+
+                        m.onUpdateView()
+
+                        ' Reposition when hidden
+                        m.node.translation = [m.props.translation[0] + 50, m.props.translation[1]]
+
+                        m.animator(`animate-details-show-${m.id}`).create({
+                            target: m,
+                            duration: m.props.duration,
+                            easeFunction: "linear",
+                            opacity: 1,
+                            translationTo: m.props.translation,
+                            optional: true
+                        }).play()
+
+                    end if
+                end sub
+            })
+        end sub
+
+
+    end class
+
+end namespace

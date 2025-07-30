@@ -1,0 +1,38 @@
+
+namespace ViewModels.Carousel
+
+    class FastCard extends ViewModels.Carousel.DefaultCard
+
+        override function template() as object
+            template = super.template()
+            template.fields.visible = true
+            template.fields.opacity = 1
+            return template
+        end function
+
+        override sub cardAnimation(shouldAnimate as boolean)
+
+            m.node.opacity = 1
+            opacity = m.props.renderIndex < 0 ? 0 : 1
+
+            if m.node.opacity = opacity then return
+
+            if shouldAnimate
+                ' Opacity animation
+                if opacity <> m.node.opacity then m.animator("animate-card-opacity").create({
+                    target: m,
+                    duration: m.props.width / UI.components.carousel.animSpeed * 2 / 1000,
+                    easeFunction: "linear",
+                    opacity: opacity,
+                    optional: true
+                }).play()
+            else
+                ' Set opacity immediately
+                m.node.opacity = opacity
+            end if
+
+        end sub
+
+    end class
+
+end namespace

@@ -1,0 +1,74 @@
+namespace ViewModels
+
+    class LanguagePickerItem extends ViewModel
+
+        override sub onUpdateView()
+            m.getWidget("itemLabel").refresh("fields.color")
+        end sub
+
+        override function template() as object
+
+            return {
+                nodeType: "Group",
+                dispatcher: "user",
+                focus: {
+                    onFocusChanged: sub (isFocused as boolean)
+                        m.onUpdateView()
+                        if isFocused = true and m.props.enableAutoSelectOnFocus = true
+                            m.notifySelection(m.props.optionKey, m.props.isActive)
+                        end if
+                    end sub,
+
+                    onSelected: sub ()
+                        m.notifySelection(m.props.optionKey, m.props.isActive)
+                    end sub
+                },
+                fields: {
+                    translation: function() as object ' expression example
+                        marginBottom = UI.components.languagePicker.marginBottom
+                        return [0, m.props.optionIndex * (UI.components.languagePicker.labelHeight + (marginBottom ?? 0))]
+                    end function
+                },
+                children: {
+                    id: "itemLabel",
+                    nodeType: "Label",
+                    fontStyle: UI.components.languagePicker.fontStyle_aa,
+                    fields: {
+                        color: function() as string
+                            if m.viewModelState.isFocused ?? false
+                                return UI.components.languagePicker.textColor.focused
+                            else
+                                return m.props.isActive ? UI.components.languagePicker.textColor.active : UI.components.languagePicker.textColor.default
+                            end if
+                        end function,
+                        text: "@l10n.languages." + m.props.optionKey,
+                        width: UI.components.languagePicker.labelWidth,
+                        height: UI.components.languagePicker.labelHeight,
+                        vertAlign: "center",
+                        horizAlign: "center"
+                    }
+                }
+            }
+
+        end function
+
+        override sub setProps(newProps as object)
+            m.props.append(newProps)
+            m.onUpdateView()
+        end sub
+
+        sub notifySelection(languageKey, isActive)
+            if isActive = false
+                m.viewModelState.dispatcher.user.dispatch({
+                    type: IntentTypes.User.SET_ACTIVE_LANGUAGE_KEY,
+                    payload: {
+                        locale: languageKey
+                    }
+                })
+            end if
+        end sub
+
+
+    end class
+
+end namespace

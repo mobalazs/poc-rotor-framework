@@ -1,0 +1,56 @@
+
+namespace ViewModels.Carousel
+
+    class HeroCard extends ViewModels.Carousel.DefaultCard
+
+        props = {
+            width: UI.components.carousel.row.default.card.width,
+            height: UI.components.carousel.row.default.card.height,
+            showFocusIndicator: false
+        }
+
+        override function template() as object
+            template = super.template()
+
+            ' Row will handle focus
+            template.Delete("focus")
+
+            return template
+        end function
+
+        override sub cardAnimation(shouldAnimate as boolean)
+            m.node.visible = true
+
+            ' Set Opacity
+
+            isInMiddleSection = m.props.displayState = Const.Carousel.DisplayState.IS_IN_MIDDLE_SECTION
+
+            if isInMiddleSection
+                opacity = 0
+            else
+                opacity = UI.components.carousel.fadeOutOpacity
+            end if
+
+            if m.node.opacity = opacity and m.node.translation[0] = m.props.offset then return
+
+            ' Animate if:
+            if shouldAnimate
+                ' Opacity animation
+                m.animator("animate-card-opacity").create({
+                    target: m,
+                    duration: UI.components.carousel.row.default.card.width / UI.components.carousel.animSpeed * 2 / 1000,
+                    easeFunction: "linear",
+                    opacity: opacity,
+                    x: m.props.offset,
+                    optional: true
+                }).play()
+            else
+                ' Set opacity immediately
+                m.node.opacity = opacity
+            end if
+
+        end sub
+
+    end class
+
+end namespace

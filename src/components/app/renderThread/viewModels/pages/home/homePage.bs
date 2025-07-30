@@ -1,0 +1,83 @@
+
+import "pkg:/components/app/renderThread/viewModels/carousel/defaultCarouselLayer.bs"
+
+namespace ViewModels
+
+    class HomePage extends BasePage
+
+        override function template() as object
+            return {
+                nodeType: "Group",
+                focus: {
+                    group: {
+                        defaultFocusId: "homeCarousel"
+                    }
+                },
+                observer: m.showPageAnimationObserver, ' trigger animation on set visible to true
+                children: [
+                    {
+                        id: "homeCarousel",
+                        viewModel: ViewModels.Carousel.DefaultCarouselLayer,
+                        fields: {
+                            translation: [0, 850]
+                            ' translation: [300, 850],
+                            ' scale: [0.3, 0.3]
+                        },
+                        props: {
+                            contentList: m.props.contentList,
+                            rowIndex: 0,
+                            cardIndex: 0,
+                            dispatcherId: "homeCarouselDispatcher"
+                        }
+                    }, {
+                        nodeType: "LayoutGroup",
+                        children: [
+                            {
+                                id: "viewTitle",
+                                nodeType: "Label",
+                                tr: "menuItems." + m.props.pageKey,
+                                fontStyle: UI.fontStyles.H2_aa,
+                                fields: {
+                                    color: UI.colors.white,
+                                    text: `@l10n.menuItems.${m.props.pageKey}.text`
+                                }
+                            }, {
+                                nodeType: "Label",
+                                tr: "menuItems." + m.props.pageKey,
+                                fontStyle: UI.fontStyles.hintText_aa,
+                                fields: {
+                                    color: UI.colors.primary_2,
+                                    text: `${m.props.cardCount} Titles to Browse`
+                                }
+                            }
+                        ]
+                    }
+                ]
+            }
+        end function
+
+        override sub onCreateView()
+
+            ' Get Home Content Dispatcher
+            m.homeContentDispatcher = m.getDispatcher("homeContent")
+
+            ' Get State of Home Content Dispatcher
+            m.homeContentDispatcher.getState(sub(props, state)
+                ' Get end instantly parse content
+                props.contentList = state.contentList
+                props.cardCount = state.cardCount
+            end sub)
+
+            ' Update home carousel content
+            m.homeContentDispatcher.addListener({
+                mapStateToProps: sub(props, state)
+                    props.contentList = state.contentList
+                    props.cardCount = state.cardCount
+                end sub,
+                callback: m.updateHomeCarousel
+            })
+        end sub
+
+    end class
+
+end namespace

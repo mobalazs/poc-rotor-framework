@@ -1,0 +1,373 @@
+import "intentTypes.bs"
+import "constants.bs"
+
+' Navigation base class for Super-Duper Carousel
+namespace ViewModels.Carousel
+
+    '******************************************************************
+    '** @class SDCNavigation
+    '** @brief Base class providing navigation logic (stepping, long-press, animation)
+    '** for the SuperDuperCarousel ViewModel.
+    '** @namespace ViewModels.Carousel
+    '** @extends ViewModel
+    '******************************************************************
+    class SDCNavigation extends ViewModel
+
+        ' --- Member Variables ---
+        carousel = {
+            templateCache: {},
+            slotOffsets: [],
+            slideOffset: 0,
+            centerOffset: 0,
+            loopExtent: 0,
+            contentCount: 0,
+            contentCount: 0,
+            maxSize: 0,
+            minSize: 0,
+            isWrapped: false,
+            focusPointer: 0
+        }
+
+        isLongPressAnimationActivated: false
+        allowLongPressNavigation = true
+        forceStopLongPress = false
+        lastDirection = 0
+
+        '''''''''
+        ' handleNavigation: Handles the primary logic for moving the carousel one step (left/right or up/down).
+        ' @param {integer} direction -1 for left/up, 1 for right/down.
+        ' @return {boolean} True if the move was handled, false otherwise (e.g., boundary hit).
+        '''''''''
+        function handleNavigation(direction) as boolean
+            ' Interactions are not always limited to ensure a better user experience but sometimes should be slowed down slightly
+            shouldSlowDown = m.props.config.animationMode = Const.Carousel.LongPressAnimationMode.SEQUENTIAL
+            ' shouldSlowDown = shouldSlowDown or m.getCurrentSlotContainerOffset() + m.carousel.minSize * 2 < -m.getSlideOffset()
+            if shouldSlowDown
+                m.plugins.focus.enableFocusNavigation(false) ' Disable focus nav
+            end if
+
+            m.lastDirection = direction ' Store last direction for long-press
+
+            ' # Handle unfixed focus navigation first (moving focus within middleSection without sliding)
+
+            handled = m.floatingFocusNavigationHandler(direction)
+            if handled ' If focus moved within fixed limit, no further action needed here
+                m.plugins.focus.enableFocusNavigation(true)
+                return true
+            end if
+
+            ' # Handle carousel sliding (step sliding)
+
+            handled = m.updateSlots(direction) ' Update internal state (stepIndex, slideOffset)
+            if handled
+
+                m.slotContainerAnimation()
+
+                ' Set focus to the new target slot in the ViewBuilder hierarchy
+                focusedWidget = m.getFocusedWidget()
+                if focusedWidget <> invalid
+                    focusedWidget.plugins.focus.setFocus()
+                    m.onSlotWidgetFocusedHook(focusedWidget)
+                end if
+
+            end if
+
+            return handled
+        end function
+
+        '''''''''
+        ' floatingFocusNavigationHandler: Handles focus movement within the middleSection when floatingFocusLimit is enabled, without sliding the carousel.
+        ' @param {integer} direction -1 for left/up, 1 for right/down.
+        ' @return {boolean} True if focus was moved within the limit, false otherwise.
+        '''''''''
+        function floatingFocusNavigationHandler(direction as integer) as boolean
+            ' Attempt to move only focus pointer without sliding - when carousel is unwrapped
+            nextFocusIndex = m.props.stepIndex + m.carousel.focusPointer + direction
+            if not m.carousel.isWrapped and (nextFocusIndex < 0 or nextFocusIndex > m.carousel.contentCount - 1)
+                return false
+            end if
+            ' Attempt to move only focus pointer without sliding
+            nextFocusId = m.generateId(m.getFocusedIndex() + direction)
+            if m.carousel.focusPointer + direction >= 0 and m.carousel.focusPointer + direction <= m.props.config.floatingFocusLimit ' Safe access used in original code
+                ' Update focus pointer
+                m.carousel.focusPointer += direction
+                ' Set focus in ViewBuilder hierarchy to the new target
+                slideSize = direction = 1 ? m.getContentSize(m.props.stepIndex) + direction : m.getContentSize(m.props.stepIndex - 1) + m.props.config.spacing
+                m.startUnfixedFocusTimer(slideSize) ' Start timer potentially for animation/delay
+
+                focusedWidget = m.slotContainerWidget.children[nextFocusId]
+                focusedWidget.plugins.focus.setFocus()
+                m.onSlotWidgetFocusedHook(focusedWidget)
+                return true ' Focus moved within limits
+            end if
+            return false ' Cannot move focus pointer further, sliding should occur
+        end function
+
+        '''''''''
+        ' updateSlots: Updates the core carousel state (stepIndex, slideOffset) for a slide action.
+        ' Triggers slot updates and rendering.
+        ' @param {integer} direction Direction of the slide (-1 or 1). Default is 1.
+        ' @return {boolean} True if state was updated, false if slide prevented (e.g., boundary).
+        '''''''''
+        function updateSlots(direction = 1 as integer) as boolean
+
+            ' Prevent slide if at boundaries (and let focus plugin handle bubbling if needed)
+            baseWidget = m.getBaseWidget()
+            lastContentIndex = m.carousel.contentCount - 1
+            isLastContent = direction = 1 and m.carousel.isWrapped = false and baseWidget.props.contentIndex = lastContentIndex
+            isFirstContent = direction = -1 and baseWidget.props.contentIndex = 0
+
+            if isFirstContent or isLastContent
+                ' Re-enable focus plugin navigation if slide is blocked at boundary
+                m.toggleEnableFocusNavigation(true)
+
+                return false ' Indicate slide did not happen
+            end if
+
+            ' Update the main step index
+            m.props.stepIndex += direction
+
+            ' Return carousel to zero offset
+            returnCarouselToBaseOffset = direction = 1 and m.carousel.isWrapped and m.props.stepIndex = m.carousel.contentCount
+
+            if returnCarouselToBaseOffset
+                m.slotContainerReturn()
+            end if
+
+            renderUpdateMode = Const.Carousel.RenderUpdateMode.VIEWPORT
+            templates = m.templateProvider(renderUpdateMode, m.props.stepIndex, direction = 1 ? Const.Carousel.SlideAction.MOVE_FORWARD : Const.Carousel.SlideAction.MOVE_BACKWARD)
+            m.renderTemplates(templates)
+
+            return true ' State updated successfully
+        end function
+
+        '''''''''
+        ' handleLongPress: Manages the start and stop of long-press actions, triggering appropriate animations.
+        ' @param {boolean} isLongPress True when long press starts, false when it stops.
+        '''''''''
+        sub handleLongPress(isLongPress, direction)
+            m.lastDirection = direction ' update last direction
+            ' First, attempt unfixed focus navigation if applicable
+            if isLongPress and m.allowLongPressNavigation
+                handled = m.floatingFocusNavigationHandler(m.lastDirection ?? - 1) ' Use last direction, default -1 if none
+                if handled then return ' If focus moved within fixed limit, do nothing more on long press start
+            end if
+
+            ' Handle animation start/stop
+            if isLongPress
+                ' Start smooth long-press animation if not already running
+                if m.animator(`animate-slotContainer-smooth`).isRunning() = false
+                    if m.props.config.animationMode = Const.Carousel.LongPressAnimationMode.SEQUENTIAL or not m.carousel.isWrapped
+                        m.plugins.focus.proceedLongPress()
+                    end if
+                    m.slotContainerAnimation()
+                end if
+            else ' Long press released
+                if m.animator(`animate-slotContainer-smooth`).isRunning() = true
+                    m.animator(`animate-slotContainer-smooth`).stop()
+                end if
+            end if
+        end sub
+
+        '''''''''
+        ' slotContainerAnimation: Initiates and manages the continuous smooth scrolling animation during long press.
+        '''''''''
+        sub slotContainerAnimation()
+            isLongPress = m.plugins.focus.isLongPressActive()
+            ' Calculate a stepwise or far-off target offset for animation
+            if isLongPress and m.props.config.animationMode = Const.Carousel.LongPressAnimationMode.CONTINUOUS and m.carousel.isWrapped
+
+                ' Target offset will is infinite (note that loopExtent has a spacing at the end)
+                targetOffset = m.lastDirection = 1 ? - m.carousel.loopExtent : 0
+            else
+
+                ' Target offset is prepared
+                targetOffset = -m.getSlideOffset() - ((m.props.config.alignToContentBottom ?? false) ? m.getContentSize(m.props.stepIndex) : 0)
+
+            end if
+
+            ' Prepare animation parameters
+            slotContainerAnimationParams = {
+                target: m.slotContainerWidget,
+                duration: m.calcDurationFromCurrentSlideOffset(isLongPress ? m.props.config.animSpeedLongPress : m.props.config.animSpeed, targetOffset),
+                easeFunction: isLongPress and m.props.config.animationMode = Const.Carousel.LongPressAnimationMode.CONTINUOUS ? "linear": "outQuad",
+                optional: false
+            }
+            slotContainerAnimationParams[m.props.config.axis] = targetOffset ' Set target position
+
+            ' Create and play the smooth animation, observe its final state
+            m.animator(`animate-slotContainer-smooth`).create(slotContainerAnimationParams).play().observeState({
+                callback: sub(state)
+                    if state = "stopped"
+
+                        if m.plugins.focus.isLongPressActive() and m.forceStopLongPress = false and m.allowLongPressNavigation = true
+
+                            ' Proceed animation for both CONTINUOUS and SEQUENTIAL
+                            m.plugins.focus.proceedLongPress()
+
+                        else
+
+                            ' Rescue focus when animation offset start and from are equal, in this case "stopped" state wont be fired and no need to call animateToCurrent
+                            if -m.getSlideOffset() = m.getCurrentSlotContainerOffset()
+                                m.plugins.focus.enableFocusNavigation(true)
+                            else
+                                ' Animation stopped (either completed far-off target or manually stopped)
+                                m.animateToCurrent() ' Animate back to the exact position for the current stepIndex
+                            end if
+                        end if
+
+                    end if
+                    m.forceStopLongPress = false
+                end sub
+            })
+
+        end sub
+
+        '''''''''
+        ' animateToCurrent: Animates the slot container smoothly to the correct final position
+        '''''''''
+        sub animateToCurrent()
+            ' Prepare animation parameters to snap back to the calculated slideOffset
+            slotContainerAnimationParams = {
+                target: m.slotContainerWidget,
+                duration: m.calcDurationFromCurrentSlideOffset(m.props.config.animSpeed, -m.getSlideOffset()), ' Use normal speed
+                easeFunction: "linear",
+                optional: true ' Snap-back animation could potentially be optional
+            }
+            slotContainerAnimationParams[m.props.config.axis] = -m.getSlideOffset() - ((m.props.config.alignToContentBottom ?? false) ? m.getContentSize(m.props.stepIndex) : 0)' Target final position
+
+            ' Create and play the snap-back animation
+            m.animator(`animate-slotContainer-one-step`).create(slotContainerAnimationParams).play().observeState({
+                callback: sub(state)
+                    if state = "stopped"
+                        m.forceStopLongPress = false
+                        if m.plugins?.focus = invalid then return
+                        m.plugins.focus.enableFocusNavigation(true) ' Re-enable focus nav
+                    end if
+                end sub
+            })
+        end sub
+
+        '''''''''
+        ' startUnfixedFocusTimer: Creates/starts a timer used for managing delays or animations
+        ' related to unfixed focus navigation.
+        ' @param {integer} size Likely the size of the item being focused, used for duration calculation.
+        '''''''''
+        sub startUnfixedFocusTimer(size)
+            ' Render (or update) a Timer node dynamically
+            m.render({
+                id: "unfixedAnimationTimer",
+                nodeType: "Timer",
+                viewModelState: {
+                    vm: m.getViewModel(), ' Pass reference to this ViewModel
+                    size: size ' Pass size for calculations
+                },
+                fields: {
+                    duration: function() ' Calculate duration dynamically
+                        ' Use different speed based on whether long press is active
+                        speed = m.viewModelState.vm.plugins.focus.isLongPressActive() ? m.props.config.animSpeedLongPress : m.props.config.animSpeed
+                        ' Use custom calculation based on speed and size
+                        return m.viewModelState.vm.calcDuration(speed * 5, m.viewModelState.size) ' Arbitrary speed multiplier?
+                    end function
+                },
+                observer: {
+                    fieldId: "fire", ' Observe when the timer finishes
+                    callback: sub(payload)
+                        ' Timer finished
+                        if m.viewModelState.vm.plugins.focus.isLongPressActive()
+                            ' If long press still active, proceed to next step
+                            m.viewModelState.vm.plugins.focus.proceedLongPress()
+                        end if
+                        ' Re-enable focus navigation
+                        m.viewModelState.vm.plugins.focus.enableFocusNavigation(true)
+                    end sub,
+                    once: true ' Callback should only fire once per timer start
+                },
+                ' Lifecycle methods for the timer node itself
+                onMountWidget: sub()
+                    m.node.control = "start" ' Start timer when node is mounted
+                end sub,
+                onUpdateWidget: sub()
+                    m.node.control = "stop" ' Restart timer if node is updated
+                    m.node.control = "start"
+                end sub,
+                onDestroyWidget: sub()
+                    m.node.control = "stop" ' Stop timer when node is destroyed
+                end sub
+            })
+        end sub
+
+        sub injectTranslationObserver()
+            ' Observe the container's translation changes during animation
+            m.render({
+                id: "slotContainer",
+                viewModelState: {
+                    tickCounter: 0
+                },
+                observer: {
+                    fieldId: "translation",
+                    callback: sub(payload)
+                        m.viewModelState.tickCounter++
+                        if m.viewModelState.tickCounter mod 2 <> 0 then return
+                        vm = m.getViewModel() ' Get ViewModel instance
+                        if vm.plugins.focus.isLongPressActive() = false then return
+
+                        isX = m.props.config.axis = Const.Carousel.Orientation.HORIZONTAL_AXIS
+                        currentSlideOffsetAnim = payload.translation[isX ? 0 : 1] ' Current position from animation frame
+
+                        if vm.props.config.animationMode = Const.Carousel.LongPressAnimationMode.CONTINUOUS
+                            if vm.lastDirection = 1 and vm.getSlideOffset() <= -currentSlideOffsetAnim ' Moving right/down, check if target passed
+                                vm.plugins.focus.proceedLongPress() ' Trigger state update for next step
+                            else if vm.lastDirection = -1 and vm.getSlideOffset() >= -currentSlideOffsetAnim ' Moving left/up, check if target passed
+                                vm.plugins.focus.proceedLongPress() ' Trigger state update for next step
+                            end if
+                        end if
+
+                    end sub
+                }
+            })
+        end sub
+
+        sub slotContainerReturn()
+            startTemplate = m.carousel.templateCache[Const.Carousel.RenderUpdateMode.VIEWPORT]?[`stepIndex_${0}`]
+            isX = m.props.config.axis = Const.Carousel.Orientation.HORIZONTAL_AXIS
+
+            if m.props.config.templateUpdateMode <> Const.Carousel.TemplateUpdateMode.NEVER
+
+                for each templateId in startTemplate
+                    template = startTemplate[templateId]
+
+                    toWidget = m.slotContainerWidget.children?[templateId]
+                    fromWidget = m.slotContainerWidget.children?[m.generateId(template.props.renderIndex + m.carousel.contentCount - 1)]
+
+                    startOffset = template.props.offset
+                    if template.props.renderIndex = 0
+                        startOffset += m.props.config.display[template.props.content.displayType]?.expandSizeForward ?? 0
+                    end if
+                    toWidget.node.setFields({
+                        translation: isX ? [startOffset, toWidget.node.translation[1]] : [toWidget.node.translation[0], startOffset],
+                        visible: true,
+                        opacity: 1 ' Note: If there are not enough items in the carousel, copying of the opacity can cause flickering.
+                    })
+
+                    m.onSlotContainerReturnCopyFieldsHook(template, fromWidget, toWidget)
+
+                end for
+
+            end if
+
+            m.props.stepIndex = 0
+            isX = m.props.config.axis = Const.Carousel.Orientation.HORIZONTAL_AXIS
+            shiftedOffset = m.getContentSize(-1) + m.props.config.spacing
+            shiftedOffset += (m.props.config.alignToContentBottom ?? false) ? m.getContentSize(-1) : 0
+            m.slotContainerWidget.node.translation = isX ? [shiftedOffset, 0] : [0, shiftedOffset] ' set container offset animate from
+        end sub
+
+        sub toggleEnableFocusNavigation(isAllowed)
+            m.plugins.focus.enableFocusNavigation(isAllowed)
+            m.allowLongPressNavigation = isAllowed
+        end sub
+
+    end class
+
+end namespace

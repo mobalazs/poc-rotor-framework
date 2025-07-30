@@ -1,0 +1,112 @@
+
+namespace ViewModels
+
+    '''''''''
+    ' SimpleButton template
+    '
+    ' props:
+    '   @enableAutoSelect {boolean}
+    '   @autoWidth {boolean}
+    '   @width {integer}
+    '   @padding {integer}
+    '''''''''
+    class SimpleButton extends ViewModel
+
+        props = {
+            text: #if debug invalid, #else "" : #end if
+            width: UI.components.buttons.simpleButton.width,
+            height: UI.components.buttons.simpleButton.height,
+            paddingX: UI.components.buttons.simpleButton.paddingX,
+            autoWidth: false,
+            autoAlignRight: invalid ' {integer}
+        }
+
+
+
+        override function template() as object
+
+            autoSizeObserverCallback = sub(payload)
+                labelNode = m.node
+                buttonBgNode = m.parent.node
+
+                ' Auto width feature
+                if m.props.autoWidth = true
+                    width = labelNode.localBoundingRect().width
+                    buttonBgNode.width = width + 2 * m.props.paddingX
+                end if
+
+                ' Auto align to right feature
+                if Rotor.Utils.isInteger(m.props.autoAlignRightTo)
+                    donNotTouchToY = m.getViewModel().node.translation[1]
+                    if m.props.autoAlignRightTo = true
+                        m.getViewModel().node.translation = [m.props.autoAlignRightTo - buttonBgNode.width, donNotTouchToY]
+                    end if
+                end if
+
+            end sub
+
+            template = {
+                nodeType: "Group",
+                focus: {
+                    isEnabled: true,
+                    onFocusChanged: sub (isFocused as boolean)
+
+                        bg = m.getWidget("buttonBg")
+                        label = m.getWidget("buttonBg/buttonLabel")
+
+                        if isFocused
+                            bg.node.blendColor = UI.components.buttons.simpleButton.bgColor_focused
+                            label.node.color = UI.components.buttons.simpleButton.textColor_focused
+                            if m.props.enableAutoSelect = true
+                                Rotor.Utils.callbackScoped(m.focus.onSelected, m)
+                            end if
+
+                        else
+                            bg.node.blendColor = UI.components.buttons.simpleButton.bgColor
+                            label.node.color = UI.components.buttons.simpleButton.textColor
+                        end if
+                    end sub
+                },
+                children: {
+                    id: "buttonBg",
+                    nodeType: "Poster",
+                    fields: {
+                        blendColor: UI.components.buttons.simpleButton.bgColor,
+                        width: m.props.autoWidth ? 0 : m.props.width,
+                        height: m.props.height,
+                        uri: UI.components.buttons.simpleButton.posterUrl
+                    },
+                    children: {
+                        id: "buttonLabel",
+                        nodeType: "Label",
+                        fontStyle: UI.components.buttons.simpleButton.fontStyle_aa,
+                        fields: {
+                            enableRenderTracking: true,
+                            text: m.props.text ?? m.getViewModel().id,
+                            color: UI.components.buttons.simpleButton.textColor,
+                            horizAlign: m.props.horizAlign ?? "center",
+                            vertAlign: m.props.vertAlign ?? "center",
+                            width: m.props.autoWidth ? 0 : m.props.width - 2 * m.props.paddingX,
+                            height: m.props.height,
+                            translation: [m.props.paddingX, 0]
+                        },
+
+                        ' Features: autoWidth, autoAlignRightTo
+
+                        observer: [{
+                            fieldId: "renderTracking",
+                            callback: autoSizeObserverCallback
+                        }, {
+                            fieldId: "text",
+                            callback: autoSizeObserverCallback
+                        }]
+                    }
+                }
+            }
+
+            return template
+        end function
+
+    end class
+
+end namespace

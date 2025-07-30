@@ -1,0 +1,153 @@
+import "mainSidebar.bs"
+
+'TODO: Should be refactored to make it more separated, such as "menuLayout"
+namespace ViewModels
+
+    class Layout extends ViewModel
+
+        ' Implemented pages. The keys below must match the pageKeys defined in pageSettings.
+        pagesViewModels = {
+            home: ViewModels.HomePage,
+            movies: ViewModels.MoviesPage,
+            series: ViewModels.SeriesPage,
+            settings: ViewModels.SettingsPage
+        }
+
+
+        override function template() as object
+
+            return {
+                nodeType: "Rectangle",
+                fields: {
+                    width: UI.designResolution.w,
+                    height: UI.designResolution.h,
+                    color: UI.colors.black
+                },
+                focus: {
+                    group: {
+                        right: function() return `page-${m.props.activePageKey}` : end function,
+                        back: function() return `page-${m.props.activePageKey}` : end function,
+                        back: "pageMenu",
+                        left: "pageMenu"
+                    }
+                },
+                children: [
+                    {
+                        id: "appBackground",
+                        nodeType: "Poster",
+                        zIndex: 0,
+                        fields: {
+                            width: UI.designResolution.w,
+                            height: UI.designResolution.h,
+                            uri: UI.components.layout.appBackground.posterUrl,
+                            blendColor: UI.components.layout.appBackground.blendColor
+                        }
+                    }, {
+                        id: "viewContainer",
+                        nodeType: "Group"
+                    }, {
+                        id: "mainSidebar",
+                        ViewModel: ViewModels.MainSidebar,
+                        nodeType: "Group"
+                    }
+                ]
+            }
+        end function
+
+        ' ViewModel lifecycle hook - called when the view is created.
+        override sub onCreateView()
+            ' Retrieves dispatcher facades.
+            m.appStoreDispatcher = m.getDispatcher("appStore")
+
+            ' Retrieves the initial state and maps it to properties.
+            m.appStoreDispatcher.getState(sub(props, state)
+                props.pageSettings = state.pageSettings ' Stores previous page settings.
+                props.activePageKey = state.activePageKey ' Gets the new active page key.
+            end sub)
+
+            ' Sets up dispatcher listeners.
+            m.appStoreDispatcher.addListener({
+                shouldUpdate: function(props, newState) as object
+                    return props.activePageKey <> newState.activePageKey
+                end function,
+                mapStateToProps: sub(props, state)
+                    props.prevActiveKey = props.activePageKey ' Stores the previous page key.
+                    props.activePageKey = state.activePageKey ' Gets the new active page key.
+                end sub,
+                callback: "proceedPageTransition"
+            })
+        end sub
+
+        ' ViewModel lifecycle hook
+        override sub onDestroyView()
+            m.appStoreDispatcher.destroy()
+            m.appStoreDispatcher = invalid
+        end sub
+
+
+        ' -------- Custom ViewModel Methods --------
+
+        ' The following logic meets most strategies as per configurable requirements.
+        ' (1) Erases the previous page if it should not be kept alive.
+        ' (2) Hides inactive pages while keeping the active one visible.
+        ' (3) Creates a new page if it does not already exist.
+        sub proceedPageTransition()
+            ' (1) Erase the previous page if it should not be kept alive based on configuration.
+            prevPageKey = m.props?.prevActiveKey ?? ""
+            if prevPageKey <> ""
+                pageIndex = Rotor.Utils.findInArrayOfAA(m.props.pageSettings, "pageKey", prevPageKey)
+                item = m.props.pageSettings[pageIndex]
+                if item <> invalid and not item?.enableKeepAlive = true
+                    m.erase(`page-${prevPageKey}`)
+                end if
+            end if
+
+            ' (2) Hide inactive pages, keep the active page visible.
+            viewcontainer = m.getWidget("viewContainer")
+            for each childId in viewcontainer.children
+                childNode = viewcontainer.children[childId].node
+                childNode.visible = false ' In page videModel there is an observer which trigger show animation on true value only if it was false
+                childNode.visible = LCase(`page-${m.props.activePageKey}`) = childId ' Visible if it matches the active page.
+            end for
+
+            ' If the page exists, make it visible; otherwise, create it.
+            doesExistPage = viewcontainer.children.DoesExist(`page-${m.props.activePageKey}`)
+
+            if not doesExistPage
+                m.render({
+                    id: "layout",
+                    children: [
+                        {
+                            id: "viewContainer",
+                            children: {
+                                id: `page-${m.props.activePageKey}`,
+                                viewModel: m.pagesViewModels[m.props.activePageKey],
+                                props: {
+                                    pageKey: m.props.activePageKey
+                                }
+                            }
+                        }
+                    ]
+                })
+            end if
+        end sub
+
+        sub appReady()
+
+            ' pageMenuWidget = m.getWidget("pageMenu")
+            ' pageMenuWidget.plugins.focus.setFocus(true, true)
+
+            activePage = m.getWidget(`page-${m.props.activePageKey}`)
+            activePage.plugins.focus.setFocus(true, true)
+
+            ' first page transition
+            m.proceedPageTransition()
+
+            ' Notify ready beacon (ONCE)
+            m.node.signalBeacon("AppLaunchComplete")
+
+        end sub
+
+    end class
+
+end namespace

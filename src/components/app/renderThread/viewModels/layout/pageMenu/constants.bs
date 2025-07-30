@@ -1,0 +1,9 @@
+namespace Const
+
+    enum TeaserType
+        FULLSCREEN_DEFAULT = "fullscreen_default"
+        FULLSCREEN_HERO = "fullscreen_hero"
+        INLINE_LANDSCAPE = "inline_landscape"
+    end enum
+
+end namespace

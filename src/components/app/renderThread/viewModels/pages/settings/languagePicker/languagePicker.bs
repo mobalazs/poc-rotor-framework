@@ -1,0 +1,119 @@
+' import "../../../optionList/optionList.bs"
+
+namespace ViewModels
+
+    class LanguagePicker extends ViewModel
+
+        override function template() as object
+
+            return {
+                nodeType: "Group",
+
+                focus: {
+                    group: {
+                        defaultFocusId: `option-${m.props.locale}`,
+                        enableSpatialEnter: false,
+                        down: m.props.down
+                    }
+                },
+                children: m.generateOptions(m.props)
+            }
+        end function
+
+        override sub onCreateView()
+
+            m.userDispatcher = m.getDispatcher("user")
+
+            m.userDispatcher.addListener({
+                shouldUpdate: function(props, newState) as object
+                    return props.locale <> newState.personalization.locale
+                end function,
+                mapStateToProps: sub(props, state)
+                    props.locale = state.personalization.locale
+                end sub,
+                callback: "onUpdateView" ' as default
+            })
+
+            m.userDispatcher.getState(sub(props, state)
+                props.append({
+                    locale: state.personalization.locale,
+                    languageKeys: state.languageKeys,
+                    enableAutoSelectOnFocus: true
+                })
+            end sub)
+
+        end sub
+
+        override sub onUpdateView()
+            for each childId in m.children
+                isActive = m.props.locale = m.children[childId].props.optionKey
+                isChanged = m.children[childId].isActive <> isActive
+                if isChanged
+                    m.children[childId].render({
+                        props: {
+                            isActive: isActive
+                        }
+                    })
+                end if
+            end for
+
+            ' update app language
+            translation = get_aaTranslation()[m.props.locale]
+            appFw = m.getFrameworkInstance()
+            appFw.plugins.tr.setAssets(translation)
+            appFw.plugins.theme.clearCache()
+            appFw.plugins.fields.clearCache()
+
+            subTree1 = m.getSubtreeClone("./**/mainSidebar", ["tr", "fields.text"])
+            subTree2 = m.getSubtreeClone("./**/viewcontainer", ["tr", "fields.text"])
+            subTree3 = m.getSubtreeClone("./dialog", ["tr", "fields.text"])
+
+            root = m.getRootWidget()
+            root.render([subTree1, subTree2, subTree3])
+        end sub
+
+        override sub onMountView()
+        end sub
+
+        override sub onDestroyView()
+            m.userDispatcher.destroy()
+            m.userDispatcher = invalid
+        end sub
+
+
+        function generateOptions(props as object)
+
+            if props.languageKeys = invalid or props.languageKeys.Count() = 0 then return {}
+
+            optionsTemplate = []
+            optionCount = props.languageKeys.Count()
+
+            for optionIndex = 0 to optionCount - 1
+
+
+                optionKey = props.languageKeys[optionIndex] ' This is the point where optionKey turn into optionKey
+                optionId = "option-" + optionKey
+
+                isActive = optionKey = props.locale
+
+                optionsTemplate.push({
+                    id: optionId, ' required property
+                    viewModel: ViewModels.LanguagePickerItem,
+                    props: {
+                        optionKey: optionKey,
+                        optionIndex: optionIndex,
+                        optionCount: optionCount,
+
+                        enableAutoSelectOnFocus: props.enableAutoSelectOnFocus,
+                        isActive: isActive,
+                        locale: props.locale
+                    }
+                })
+            end for
+
+            return optionsTemplate
+        end function
+
+    end class
+
+end namespace

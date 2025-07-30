@@ -1,0 +1,40 @@
+
+namespace ViewModels
+
+    class DefaultRowTitle extends ViewModel
+
+        props = {
+            title: "",
+            shouldShowCurrent: false,
+            contentIndex: 0
+        }
+
+        override function template() as object
+            return {
+                id: "titleLabel",
+                nodeType: "Label",
+                fontStyle: UI.components.carousel.row.default.title.fontStyle_aa,
+                fields: {
+                    text: function()
+                        if m.props.shouldShowCurrent
+                            title = `${m.props.title} (${m.props.contentIndex + 1} of ${m.props.childCount})`
+                        else
+                            title = `${m.props.title} (${m.props.childCount})`
+                        end if
+                        return title
+                    end function,
+                    color: UI.components.carousel.row.default.title.textColor,
+                    horizAlign: "left",
+                    vertAlign: "center"
+                    ' height: UI.components.carousel.row.default.title.height
+                }
+            }
+        end function
+
+        override sub onUpdateView()
+            m.refresh("fields.text")
+        end sub
+
+    end class
+
+end namespace

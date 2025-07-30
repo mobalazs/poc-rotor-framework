@@ -1,0 +1,191 @@
+
+import "pkg:/components/app/renderThread/viewModels/carousel/lanes/defaultRowCarousel.bs"
+
+import "../faders/mediaSwapper.bs"
+
+namespace ViewModels.Carousel
+
+    '''''''''
+    '
+    ' DefaultCarousel: Implements extra features and MVI data flow for vertical, horizontal carousels and cards.
+    ' Technically this is a bridge and wrapper for actual multiple carousels and additional features built on SuperDuperCarousel.
+    '
+    ' props:
+    '     @contentList {array of contentNodes}
+    '     @rowIndex: {integer},
+    '     @cardIndex: {integer},
+    '     @dispatcherId: {string}
+    '
+    '''''''''
+    class DefaultCarouselLayer extends ViewModel
+
+        override function template() as object
+
+            dispatcherId = m.props.dispatcherId ?? `${m.id}-carouselDispatcher`
+            initialRowContent = m.props.contentList[m.props.rowIndex] ' Future improvement: validate indexes
+            initialCardContent = initialRowContent.contentList[m.props.cardIndex] ' Future improvement: validate indexes
+
+            return {
+                nodeType: "Group", ' This is the default
+                focus: {
+                    group: {
+                        defaultFocusId: "homeRowCarousel",
+                        onFocusChanged: sub(isFocused)
+                            if isFocused
+                                ' m.children.mediaSwapper.resume()
+                            else
+                                ' Catch longPress when run out of content
+                                ' if m.plugins.focus.isLongPressActive()
+                                '     m.children.mediaSwapper.executeSwapToNext()
+                                ' else
+                                '     m.children.mediaSwapper.pause()
+                                ' end if
+                                m.hideFocusIndicator()
+                            end if
+                        end sub,
+                        up: function()
+                            ' Catch longPress when run out of content
+                            if m.plugins.focus.isLongPressActive()
+                                ' m.children.mediaSwapper.executeSwapToNext()
+                            end if
+                            ' Let it bubbling
+                            return false
+                        end function,
+                        left: function()
+                            ' Catch longPress when run out of content
+                            if m.plugins.focus.isLongPressActive()
+                                m.children.mediaSwapper.executeSwapToNext()
+                            else
+                                m.children.mediaSwapper.pause()
+                            end if
+                            ' Let it bubbling
+                            return false
+                        end function,
+                        longPressHandler: function(isLongPress, key) as boolean
+                            if isLongPress = false and (key = "right" or key = "down")
+                                m.children.mediaSwapper.onLongPressRelease()
+                            end if
+                            return true
+                        end function
+                    }
+                },
+                children: [
+                    {
+                        id: "mediaSwapper",
+                        viewModel: ViewModels.Faders.MediaSwapperLayer,
+                        props: {
+                            animDuration: 0.2, ' default for all swap
+                            autoPlayPreviewVideo: true, ' default for all swap
+                            defaultThresholdDuration: 0.3,
+                            videoStartTimerDuration: 0.8,
+                            initialContent: initialCardContent ' will be presented immediately without animation
+                        }
+                    }, {
+                        id: "homeRowCarousel", ' vertical carousel
+                        viewModel: ViewModels.Carousel.defaultRowCarousel,
+                        props: {
+                            ' Pass props to carousels
+                            contentList: m.props.contentList ?? [],
+                            rowIndex: m.props.rowIndex ?? 10,
+                            cardIndex: m.props.cardIndex ?? 0,
+                            dispatcherId: dispatcherId
+                        }
+                    }, {
+                        nodeType: "Poster",
+                        id: "focusIndicator",
+                        fields: {
+                            uri: UI.components.carousel.focusFrameUrl,
+                            opacity: 0,
+                            width: 200,
+                            height: 300
+                        }
+                    }
+                ]
+            }
+        end function
+
+        override sub onCreateView()
+            ' Create dispatcher to ensure data flow across vertical-. horizontal carousel and cards
+            m.carouselDispatcher = m.createDispatcher(m.props.dispatcherId, new DefaultCarouselModel(), new DefaultCarouselReducer())
+            ' m.defaultCarouselDispatcher.addListener({
+            '     mapStateToProps: sub(props, state)
+            '         props.focused = state.focused
+            '     end sub,
+            '     callback: m.onDefaultCarouselStateChanged
+            ' })
+        end sub
+
+        override sub onMountView()
+            m.carouselDispatcher.addListener({
+                mapStateToProps: sub(props, state)
+                    props.focused = state.focused
+                end sub,
+                callback: m.onFocusedContentChanged
+            })
+        end sub
+
+        sub onFocusedContentChanged()
+
+            ' Set focus indicator
+            m.onDefaultCarouselStateChanged()
+
+            ' Set media background
+            m.children.mediaSwapper.swapTo({
+                content: m.props.focused.content,
+                uid: m.props.focused.uid ' should be unique for whole carousel system
+            })
+        end sub
+
+        sub hideFocusIndicator()
+            m.animator("focusIndicator-animation").create({
+                easeFunction: "linear",
+                target: m.children.focusIndicator,
+                duration: 0.2,
+                opacity: 0
+            }).play()
+        end sub
+
+        sub onDefaultCarouselStateChanged()
+            id = m.props.focused.id
+            rowCarouselId = m.props.focused.rowCarouselId
+            cardCarouselId = m.props.focused.cardCarouselId
+            showFocusIndicator = m.props.focused.showFocusIndicator
+
+            rowCarousel = m.getWidget(rowCarouselId)
+            cardCarousel = rowCarousel.getWidget(cardCarouselId)
+            wrapperNode = cardCarousel.children.slotContainerWrapper?.node
+            wrapperX = wrapperNode?.translation?[0] ?? 0
+            wrapperY = wrapperNode?.translation?[1] ?? 0
+
+            ' Get thumbnail
+            ' Note: In some cases performance is everything so the card itself is only a single Poster,
+            '       while sometimes card is a complex viewModel where poster's id is thumbnail
+            thumbnail = cardCarousel.getWidget(`thumbnail`)
+            if thumbnail = invalid then thumbnail = cardCarousel.getWidget(id)
+
+            xOffset = cardCarousel.getSlideOffset(cardCarousel.getFocusedIndex()) - ((cardCarousel.props.config.alignToContentBottom ?? false)? cardCarousel.getContentSize() + wrapperX : 0) - cardCarousel.getSlideOffset() + cardCarousel.carousel.centerOffset + wrapperX - 2
+            yOffset = rowCarousel.getSlideOffset(rowCarousel.getFocusedIndex()) - ((rowCarousel.props.config.alignToContentBottom ?? false)? rowCarousel.getContentSize() + wrapperY : 0) - rowCarousel.getSlideOffset() + rowCarousel.carousel.centerOffset + wrapperY - 2
+
+            m.animator("focusIndicator-animation").create({
+                easeFunction: "linear",
+                target: m.children.focusIndicator,
+                duration: thumbnail.node.width / UI.components.carousel.animSpeed / 1000,
+                translationTo: [xOffset, yOffset],
+                opacity: thumbnail.node.opacity,
+                width: thumbnail.node.width + 2,
+                height: thumbnail.node.height + 2,
+                scaleRotateCenter: [(thumbnail.node.width + 2) / 2, (thumbnail.node.height + 2) / 2],
+                scale: thumbnail.node.scale,
+                opacity: showFocusIndicator ? 1 : 0
+            }).play()
+        end sub
+
+        override sub onDestroyView()
+            m.carouselDispatcher.destroy()
+        end sub
+
+
+    end Class
+
+
+end namespace

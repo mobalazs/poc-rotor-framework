@@ -1,0 +1,34 @@
+namespace ViewModels
+
+    class BasePage extends ViewModel
+
+        showPageAnimationObserver = {
+            fieldId: "visible", ' show animation can be triggered by set visible field
+            callback: sub(payload)
+                if not payload.visible then return
+                m.showAnimation()
+            end sub
+        }
+
+        override sub onMountView()
+            m.showAnimation()
+        end sub
+
+        sub showAnimation()
+            m.node.opacity = 0.1
+            m.node.scale = [2, 2]
+            m.node.visible = true
+
+            m.animator("showPageAnimation").timeline({
+                duration: UI.components.dialogs.defaultDialog.animationDuration,
+                easeFunction: "inOutQuartic"
+            }).add({
+                target: m, ' target is this widget
+                scale: [1, 1],
+                opacity: 1
+            }).play()
+        end sub
+
+    end class
+
+end namespace

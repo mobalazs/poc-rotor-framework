@@ -1,0 +1,44 @@
+namespace ViewModels
+
+    class SettingsPage extends BasePage
+
+        override function template() as object
+
+            return {
+                nodeType: "LayoutGroup",
+                fields: {
+                    itemSpacings: [50, 25]
+                },
+                focus: {
+                    group: {
+                        defaultFocusId: "languagePicker"
+                    }
+                },
+                children: [
+                    {
+                        id: "viewTitle",
+                        nodeType: "Label",
+                        tr: "menuItems." + m.props.pageKey,
+                        fontStyle: UI.fontStyles.H2_aa,
+                        fields: {
+                            text: "@l10n.menuItems." + m.props.pageKey + ".text"
+                        }
+                    }, {
+                        nodeType: "Label",
+                        tr: "settings.languagePicker.headlineText",
+                        fontStyle: UI.fontStyles.H4_aa,
+                        fields: {
+                            text: "@l10n.settings.languagePicker.headlineText"
+                        }
+                    }, {
+                        id: "languagePicker",
+                        viewModel: ViewModels.LanguagePicker
+                    }
+                ]
+            }
+
+        end function
+
+    end class
+
+end namespace

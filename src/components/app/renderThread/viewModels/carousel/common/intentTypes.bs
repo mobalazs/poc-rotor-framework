@@ -1,0 +1,9 @@
+
+namespace IntentTypes
+
+    enum CAROUSEL
+        SET_FOCUSED_CARD = "set_focused_card"
+        SET_FOCUS_INDICATOR_INFO = "set_focus_indicator_info"
+    end enum
+
+end namespace

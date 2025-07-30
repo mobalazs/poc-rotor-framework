@@ -1,0 +1,103 @@
+import "pkg:/source/libs/roku-requests/Requests.brs"
+
+class HttpRouter
+
+    sub new(request)
+
+    end sub
+
+    function Requests(isRemoteRequest = true) as object
+
+        #if debug
+            isRemoteRequest = false
+        #end if
+
+        if isRemoteRequest
+            return Requests()
+        else
+            return m.mockupFactory()
+        end if
+    end function
+
+    #if debug
+        function mockupFactory() as object
+            return {
+
+                mockupMap: {
+                    "https://rotor-sample.b-cdn.net/mockups/feed/home_feed.json": "pkg:/assets/mockups/feed/home_feed.json"
+                },
+
+                get: function(url)
+                    uri = m.mockupMap[url]
+                    json = ParseJson(ReadAsciifile(uri))
+                    deviceInfoNode = CreateObject("roDeviceInfo")
+                    requestid = deviceInfoNode.GetRandomUUID()
+                    return {
+                        "body": "<mockup>",
+                        "cachehit": true,
+                        "getfailurereason": "OK",
+                        "getsourceidentity": 111111111,
+                        "headers": {
+                            "cache-control": "public, max-age=2592000",
+                            "cdn-cache": "MISS",
+                            "cdn-cachedat": "03/20/2024 22:50:02",
+                            "cdn-edgestorageid": "<mockup>",
+                            "cdn-fileserver": "<mockup>",
+                            "cdn-proxyver": "1.04",
+                            "cdn-pullzone": "<mockup>",
+                            "cdn-requestcountrycode": "<mockup>",
+                            "cdn-requestid": requestid,
+                            "cdn-requestpullcode": "206",
+                            "cdn-requestpullsuccess": "True",
+                            "cdn-status": "200",
+                            "cdn-storageserver": "<mockup>",
+                            "cdn-uid": "<mockup>",
+                            "content-encoding": "gzip",
+                            "content-type": "application/json",
+                            "date": "Wed, 20 Mar 2024 22:50:02 GMT",
+                            "last-modified": "Wed, 20 Mar 2024 22:49:32 GMT",
+                            "server": "<mockup>",
+                            "vary": "Accept-Encoding"
+                        },
+                        "headersarray": [
+                            { "cache-control": "public, max-age=2592000" },
+                            { "cdn-cache": "MISS" },
+                            { "cdn-cachedat": "03/20/2024 22:50:02" },
+                            { "cdn-edgestorageid": "<mockup>" },
+                            { "cdn-fileserver": "<mockup>" },
+                            { "cdn-proxyver": "1.04" },
+                            { "cdn-pullzone": "<mockup>" },
+                            { "cdn-requestcountrycode": "<mockup>" },
+                            { "cdn-requestid": requestid },
+                            { "cdn-requestpullcode": "206" },
+                            { "cdn-requestpullsuccess": "True" },
+                            { "cdn-status": "200" },
+                            { "cdn-storageserver": "<mockup>" },
+                            { "cdn-uid": "<mockup>" },
+                            { "content-encoding": "gzip" },
+                            { "content-type": "application/json" },
+                            { "date": "Wed, 20 Mar 2024 2250:02 GMT" },
+                            { "last-modified": "Wed, 20 Mar 2024 22:49:32 GMT" },
+                            { "server": "<mockup>" },
+                            { "vary": "Accept-Encoding" }
+                        ],
+                        "json": json,
+                        "ok": true,
+                        "statuscode": 200,
+                        "target_ip": "<mockup>",
+                        "text": "<mockup>",
+                        "timestried": 1,
+                        "url": url
+                    }
+                end function
+            }
+
+        end function
+
+    #end if
+
+end class
+
+
+
+

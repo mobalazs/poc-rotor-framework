@@ -1,0 +1,79 @@
+namespace ViewModels
+
+    class MoviesPage extends BasePage
+
+
+        override function template() as object
+
+            return {
+                nodeType: "LayoutGroup",
+                fields: {
+                    itemSpacings: [50, 10]
+                },
+                focus: {
+                    group: {
+                        defaultFocusId: "homeButton-0"
+                    }
+                },
+                observer: m.showPageAnimationObserver,
+                children: [
+                    {
+                        id: "viewTitle",
+                        nodeType: "Label",
+                        tr: "menuItems." + m.props.pageKey,
+                        fontStyle: UI.fontStyles.H2_aa,
+                        fields: {
+                            text: "@l10n.menuItems." + m.props.pageKey + ".text"
+                        }
+
+                    }, {
+                        id: "homeButton-0",
+                        viewModel: ViewModels.SimpleButton
+                    }, {
+                        id: "homeButton-1",
+                        viewModel: ViewModels.SimpleButton,
+                        props: {
+                            text: "Custom text and width",
+                            width: 600
+                        }
+                    }, {
+                        id: "homeButton-2",
+                        viewModel: ViewModels.SimpleButton,
+                        props: {
+                            ' Use expression
+                            text: function() as string
+                                ' m will identify scope of viewModel (viewModel will be created based on this template)
+                                return `Label node id: ${m.id}`
+                            end function,
+                            width: 350,
+                            horizAlign: "left"
+                        }
+                    }, {
+                        id: "homeButton-3",
+                        viewModel: ViewModels.SimpleButton,
+                        props: {
+                            ' Use expression
+                            text: function() as string
+                                ' m will identify scope of viewModel (viewModel will be created based on this template)
+                                return `ViewModel id: ${m.getViewModel().id}`
+                            end function,
+                            width: 350,
+                            horizAlign: "left"
+                        }
+                    }, {
+                        id: "homeButton-4",
+                        viewModel: ViewModels.SimpleButton,
+                        props: {
+                            ' Use expression
+                            text: "Auto width",
+                            autoWidth: true
+                        }
+                    }
+                ]
+            }
+
+        end function
+
+    end class
+
+end namespace

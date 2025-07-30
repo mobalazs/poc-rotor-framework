@@ -1,0 +1,46 @@
+namespace Rotor
+
+    class BaseWidget
+
+        ' Public properties
+
+        id as string
+        children as object
+
+        viewModelState as object ' shared across viewModel's widgets
+        props as object ' shared across viewModel's widgets
+        nodeType as string ' roSgNode type
+        zIndex as integer
+
+        onMountWidget as Function ' widget's lifecycle callback
+        onUpdateWidget as Function ' widget's lifecycle callback
+        onDestroyWidget as Function ' widget's lifecycle callback
+
+        ' Public methods
+
+        getWidget as Function ' decorated by widget
+        findWidgets as Function ' decorated by widget
+        getChildrenWidgets as Function ' decorated by widget
+        getSubtreeClone as Function ' decorated by widget
+        render as Function ' decorated by widget
+        getDispatcher as Function ' decorated by widget
+        createDispatcher as Function ' decorated by widget
+        animator as Function ' decorated by widget
+
+
+        ' Rotor engire properties
+
+        private HID as string ' used by rotor engine
+        private vmHID as string ' used by rotor engine
+        private isRootChild as boolean ' used by rotor engine
+        private childrenHIDhash as object ' used by rotor engine
+        private parentHID as string ' used by rotor engine
+
+        isWidget = true
+
+    end class
+
+    ' (1) builder.WidgetTreeBase.add
+    ' (2) builder.processor.createWidget
+
+end namespace

@@ -1,0 +1,82 @@
+
+namespace ViewModels.Faders
+
+    class PreviewImage extends ViewModel
+
+        props = {
+            imageUrl: "",
+            width: UI.designResolution.w,
+            height: UI.designResolution.h,
+            translation: [UI.designResolution.w, UI.designResolution.h],
+            blendColor: "0xFFFFFFFF"
+        }
+
+        override function template() as object
+            return {
+                fields: {
+                    isAssetReady: false
+                },
+                children: [
+                    {
+                        id: "image",
+                        nodeType: "Poster",
+                        fields: {
+                            inheritParentTransform: false, ' full screen
+                            uri: m.props.imageUrl,
+                            width: m.props.width,
+                            height: m.props.height,
+                            loadWidth: m.props.width,
+                            loadHeight: m.props.height,
+                            translation: m.props.translation,
+                            blendColor: m.props.blendColor,
+                            failedBitmapOpacity: 0.6,
+                            failedBitmapUri: "https://placehold.co/1920x1080/000000/F00/jpg?text=Dummy+image\nCDN+issue"
+                        },
+                        onMountWidget: sub()
+                            if m.node.loadStatus = "ready"
+                                m.getViewModel().notifyState()
+                            end if
+                        end sub,
+                        observer: {
+                            fieldId: "loadStatus",
+                            callback: sub(payload)
+                                if payload.loadStatus = "ready"
+                                    m.viewModelState.retryCounter = 0
+                                    m.getViewModel().notifyState()
+                                else if payload.loadStatus = "failed" 'and m.viewModelState.retryCounter < 2
+                                    ' ' Note: this is a workaround for the dummy CDN issue.
+                                    ' m.node.uri = `https://placehold.co/1920x1080/000000/F00/jpg?text=Dummy+image\nCDN+issue`
+                                    ' m.viewModelState.retryCounter++
+                                    m.getViewModel().notifyState()
+                                end if
+                            end sub
+                        }
+                    }
+                ]
+            }
+        end function
+
+        override sub setProps(props)
+            m.node.isAssetReady = false
+
+            isUirChanged = props.imageUrl = m.children.image.node.uri or props.imageUrl = ""
+            if isUirChanged
+                m.notifyState()
+            else
+                m.children.image.node.setFields({
+                    height: props.height,
+                    width: props.width,
+                    translation: props.translation,
+                    blendColor: props.blendColor,
+                    uri: props.imageUrl
+                })
+            end if
+        end sub
+
+        sub notifyState()
+            m.node.isAssetReady = true
+        end sub
+
+    end class
+
+end namespace

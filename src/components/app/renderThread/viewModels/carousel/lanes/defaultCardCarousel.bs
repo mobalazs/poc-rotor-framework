@@ -1,0 +1,234 @@
+' Card view models
+import "../cards/defaultCard.bs"
+import "../cards/promoTripleCard.bs"
+import "additionalFeatures/details/defaultDetails.bs"
+namespace ViewModels.Carousel
+
+    '''''''''
+    ' DefaultCardCarousel: Instance of Carousel viewModel; Render cards horizontally
+    '
+    ' props:
+    '   # All carousel props. For more details please check ViewModels.Carousel class
+    '
+    '''''''''
+    class DefaultCardCarousel extends ViewModels.Carousel.SuperDuperCarousel
+
+        props = {
+            config: {
+                axis: Const.Carousel.Orientation.HORIZONTAL_AXIS,
+                beforeSection: UI.safeAreaOffsets.x + 70,
+                middleSection: UI.designResolution.w - 2 * UI.safeAreaOffsets.x - 70,
+                afterSection: UI.safeAreaOffsets.x,
+                spacing: UI.components.carousel.row.cardSpacing,
+
+                animSpeed: UI.components.carousel.animSpeed,
+                animSpeedLongPress: UI.components.carousel.animSpeed,
+
+                enableWrap: true,
+                floatingFocusLimit: 0,
+                enableMiddleSectionCentered: false,
+                initialRenderUpdateMode: Const.Carousel.RenderUpdateMode.VIEWPORT,
+                animationMode: Const.Carousel.LongPressAnimationMode.CONTINUOUS,
+
+                idPrefix: "card",
+                display: {
+                    default: {
+                        viewModel: ViewModels.Carousel.DefaultCard,
+                        size: UI.components.carousel.row.default.card.width
+                    },
+                    trending: {
+                        viewModel: ViewModels.Carousel.DefaultCard,
+                        size: UI.components.carousel.row.default.card.width
+                    },
+                    promoTriple: {
+                        viewModel: ViewModels.Carousel.PromoTripleCard,
+                        size: UI.components.carousel.row.default.promoTripleCard.width
+                    }
+                }
+            }
+        }
+
+        ' Carousel template
+        override function template() as object
+            return {
+                nodeType: "Group",
+                dispatcher: m.props.dispatcherId,
+                fields: {
+                    visible: false,
+                    opacity: 1,
+                    translation: [0, m.props.offset]
+                },
+                focus: {
+                    group: {
+                        autoSetIsFocusedOnContext: true,
+                        enableSpatialNavigation: false, ' turn off automatic spatial navigation
+                        defaultFocusId: function()
+                            return m.getFocusId()
+                        end function,
+
+                        left: function()
+                            return m.handleNavigation(-1)
+                        end function,
+                        right: function()
+                            return m.handleNavigation(1)
+                        end function,
+
+                        up: function()
+                            if m.getParentViewModel().getFocusedIndex() > 0
+                                m.children.details.hide()
+                            end if
+                            return false
+                        end function,
+
+                        down: function()
+                            if m.getParentViewModel().carousel.isWrapped = true or m.getParentViewModel().getFocusedIndex() < m.getParentViewModel().carousel.contentCount - 1
+                                m.children.details.hide()
+                            end if
+                            return false
+                        end function,
+
+                        longPressHandler: function(isLongPress, key) as boolean
+                            if key = "left" or key = "right"
+                                m.handleLongPress(isLongPress, key = "left" ? - 1 : 1)
+                                ' return true
+                            end if
+                            return false
+                        end function,
+
+                        onFocusChanged: sub(isFocused)
+                            m.onFocusChangedHook(isFocused)
+                        end sub,
+
+                        onFocus: sub()
+                            m.onFocusHook()
+                        end sub
+                    }
+                },
+                children: [
+                    {
+                        id: "details",
+                        viewModel: ViewModels.Carousel.DefaultDetails,
+                        fields: {
+                            translation: [0, -300]
+                        }
+                    },
+                    {
+                        id: "title",
+                        viewModel: ViewModels.DefaultRowTitle,
+                        props: {
+                            title: m.props.content.title,
+                            childCount: m.props.contentList.Count()
+                        }
+                    }, {
+                        id: "slotContainerWrapper",
+                        nodeType: "Group",
+                        fields: {
+                            translation: [0, UI.components.carousel.row.default.title.height]
+                        },
+                        children: [
+                            {
+                                nodeType: "Group",
+                                id: "slotContainer"
+                            }
+                        ]
+                    }
+                ]
+            }
+        end function
+
+        override function onCreateSlotHook(slot) as object
+            return {
+                contentId: slot.content.contentId,
+                content: slot.content, ' card content
+                dispatcherId: m.props.dispatcherId
+            }
+        end function
+
+        override sub onMountView()
+            m.props.stepIndex = m.props.cardIndex
+            super.onMountView()
+
+            m.children.details.setProps({
+                shouldShow: m.props.renderIndex = m.getParentViewModel().getFocusedIndex(),
+                content: m.getFocusedContent()
+            })
+
+            m.runAnimation(false)
+        end sub
+
+        override sub onUpdateView()
+            m.runAnimation(true)
+        end sub
+
+        sub runAnimation(shouldAnimate as boolean)
+            m.node.visible = true
+
+            ' Set visibility
+
+            m.isOutOfViewPort = m.props.displayState = Const.Carousel.DisplayState.IS_OUT_OF_VIEWPORT
+            isInMiddleSection = m.props.displayState = Const.Carousel.DisplayState.IS_IN_MIDDLE_SECTION
+
+            opacity = isInMiddleSection ? 1 : m.isOutOfViewPort ? 0 : UI.components.carousel.fadeOutOpacity
+
+            if m.node.opacity = opacity and m.node.translation[0] = m.props.offset then return
+
+            if shouldAnimate
+
+                duration = UI.components.carousel.row.hero.card.height / UI.components.carousel.animSpeed / 1000
+
+                m.animator("animate-row-opacity").create({
+                    target: m,
+                    easeFunction: "linear",
+                    duration: m.isOutOfViewPort ? duration / 2 : duration,
+                    delay: m.isOutOfViewPort ? duration / 2 : 0,
+                    opacity: opacity,
+                    y: m.props.offset,
+                    optional: true
+                })
+                m.animator("animate-row-opacity").play().observeState({
+                    callback: sub(state)
+                        if state = "stopped" and m.isOutOfViewPort
+                            m.node.visible = false
+                        end if
+                    end sub
+                })
+
+            else
+                m.node.opacity = opacity
+            end if
+
+        end sub
+
+        ' Handle expand (row focus change)
+        override sub onSlotWidgetFocusedHook(focusedWidget)
+            m.children.details.setProps({
+                content: m.getFocusedContent()
+            })
+            m.updateRowTitle(true)
+        end sub
+
+        ' Handle slot focus changes (card focus change)
+        sub onFocusChangedHook(isFocused)
+
+            m.updateRowTitle(isFocused)
+
+        end sub
+
+        ' Handle slot focus changes (card focus change)
+        sub onFocusHook()
+
+            m.children.details.show()
+
+        end sub
+
+        override sub updateRowTitle(isFocused)
+            titleWidget = m.children.title
+            if titleWidget = invalid then return
+            titleWidget.props.shouldShowCurrent = isFocused
+            titleWidget.props.contentIndex = m.getFocusedContentIndex()
+            titleWidget.onUpdateView()
+        end sub
+
+    end class
+
+end namespace

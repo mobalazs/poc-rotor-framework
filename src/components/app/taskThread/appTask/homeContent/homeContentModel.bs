@@ -1,0 +1,12 @@
+namespace Models
+
+    class HomeContentModel extends Model
+
+        state = {
+            contentList: [],
+            cardCount: []
+        }
+
+    end class
+
+end namespace

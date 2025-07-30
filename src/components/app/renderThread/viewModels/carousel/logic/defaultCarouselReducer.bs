@@ -1,0 +1,34 @@
+
+class DefaultCarouselReducer extends Reducer
+
+    ' override function applyMiddlewares()
+    '     return [
+    '         ' (1) Logger middleware
+    '         function(intent, state) as Intent
+    '             ' OG
+    '             return intent ' NEXT
+    '         end function
+    '     ]
+    ' end function
+
+    override function reducer(state as Object, intent as Intent)
+
+        if intent.type = IntentTypes.CAROUSEL.SET_FOCUSED_CARD
+
+            if intent.payload.content <> invalid
+                state.focused.content = intent.payload.content
+            end if
+            state.focused.id = intent.payload.id
+            state.focused.cardCarouselId = intent.payload.cardCarouselId
+            state.focused.rowCarouselId = intent.payload.rowCarouselId
+            state.focused.showFocusIndicator = intent.payload.showFocusIndicator
+            state.focused.displayType = intent.payload.displayType
+            state.focused.uid = intent.payload.id + "-" +intent.payload.cardCarouselId
+
+        end if
+
+        return state
+
+    end function
+
+end class

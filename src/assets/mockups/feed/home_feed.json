@@ -1,0 +1,342 @@
+{
+    "contents": [
+        {
+            "contentId": "PROMO1",
+            "title": "Promo block 1",
+            "buttonText": "@l10n.promoButtonTexts.learnMore,@l10n.promoButtonTexts.limitedTimeOffer",
+            "contentType": "promo",
+            "displayType": "promoTriple",
+            "previewPosterUrl": "https://rotor-sample.b-cdn.net/mockups/poster-620x300/movie_promo_620x300.jpg",
+            "thumbnailUrl": "https://rotor-sample.b-cdn.net/mockups/poster-620x300/movie_promo_620x300.jpg",
+            "description": "Promotion text"
+        },
+        {
+            "contentId": "ID0",
+            "title": "Big Buck Bunny",
+            "subtitle": "By Blender Foundation",
+            "contentType": "short",
+            "previewPosterUrl": "https://vz-294d587c-ef1.b-cdn.net/2f2db2db-7e2e-4dbe-b3e0-aac4cfdb5988/thumbnail_82d1047f.jpg",
+            "previewManifestUrl": "https://vz-294d587c-ef1.b-cdn.net/2f2db2db-7e2e-4dbe-b3e0-aac4cfdb5988/playlist.m3u8",
+            "thumbnailUrl": "https://rotor-sample.b-cdn.net/mockups/poster-200x300/big_buck_bunny-200x300.jpg",
+            "manifestUrl": "https://vz-294d587c-ef1.b-cdn.net/821e6eea-f50a-428a-b9f7-71657984bb67/playlist.m3u8",
+            "description": "Big Buck Bunny tells the story of a giant rabbit with a heart bigger than himself. When one sunny day three rodents rudely harass him, something snaps... and the rabbit ain't no bunny anymore! In the typical cartoon tradition he prepares the nasty rodents a comical revenge. Licensed under the Creative Commons Attribution license http://www.bigbuckbunny.org"
+        },
+        {
+            "contentId": "ID1",
+            "title": "Sintel",
+            "subtitle": "By Blender Foundation",
+            "contentType": "movie",
+            "previewPosterUrl": "https://vz-294d587c-ef1.b-cdn.net/f59e3327-5397-42f5-9c3a-48d398a99294/thumbnail_a64befb5.jpg",
+            "previewManifestUrl": "https://vz-294d587c-ef1.b-cdn.net/f59e3327-5397-42f5-9c3a-48d398a99294/playlist.m3u8",
+            "thumbnailUrl": "https://rotor-sample.b-cdn.net/mockups/poster-200x300/sintel-200x300.jpg",
+            "manifestUrl": "https://vz-294d587c-ef1.b-cdn.net/392ec1bf-bb68-418a-90b6-517f4d987254/playlist.m3u8",
+            "description": "Sintel is an independently produced short film, initiated by the Blender Foundation as a means to further improve and validate the free/open source 3D creation suite Blender. With initial funding provided by 1000s of donations via the internet community, it has again proven to be a viable development model for both open 3D technology as for independent animation film. This 15 minute film has been realized in the studio of the Amsterdam Blender Institute, by an international team of artists and developers. In addition to that, several crucial technical and creative targets have been realized online, by developers and artists and teams all over the world. www.sintel.org"
+        },
+        {
+            "contentId": "ID2",
+            "title": "Tears of Steel",
+            "subtitle": "By Blender Foundation",
+            "contentType": "movie",
+            "previewPosterUrl": "https://vz-294d587c-ef1.b-cdn.net/f8cb7d3b-9674-4c51-bd99-61a867d972a9/thumbnail_7e0cb66d.jpg",
+            "previewManifestUrl": "https://vz-294d587c-ef1.b-cdn.net/f8cb7d3b-9674-4c51-bd99-61a867d972a9/playlist.m3u8",
+            "thumbnailUrl": "https://rotor-sample.b-cdn.net/mockups/poster-200x300/tos-200x300.jpg",
+            "manifestUrl": "https://vz-294d587c-ef1.b-cdn.net/e44e5da9-ffcf-4301-bb61-53a9cf1fb8a0/playlist.m3u8",
+            "description": "Tears of Steel was realized with crowd-funding by users of the open source 3D creation tool Blender. Target was to improve and test a complete open and free pipeline for visual effects in film - and to make a compelling sci-fi film in Amsterdam, the Netherlands.  The film itself, and all raw material used for making it, have been released under the Creatieve Commons 3.0 Attribution license. Visit the tearsofsteel.org website to find out more about this, or to purchase the 4-DVD box with a lot of extras.  (CC) Blender Foundation - http://www.tearsofsteel.org"
+        },
+        {
+            "contentId": "ID3",
+            "title": "Elephant Dream",
+            "subtitle": "By Blender Foundation",
+            "contentType": "movie",
+            "previewPosterUrl": "https://vz-294d587c-ef1.b-cdn.net/14903a3c-3f5d-4ef3-aee6-aea088978a56/thumbnail_a8d2645d.jpg",
+            "previewManifestUrl": "https://vz-294d587c-ef1.b-cdn.net/14903a3c-3f5d-4ef3-aee6-aea088978a56/playlist.m3u8",
+            "thumbnailUrl": "https://rotor-sample.b-cdn.net/mockups/poster-200x300/elephatn_dream-200x300.jpg",
+            "manifestUrl": "https://vz-294d587c-ef1.b-cdn.net/7a8332b8-bb8a-4838-b82a-caee3b79d22b/playlist.m3u8",
+            "description": "The first Blender Open Movie from 2006. Ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+        },
+        {
+            "contentId": "ID4",
+            "title": "The Vagabond",
+            "subtitle": "By Charlie Chaplin",
+            "contentType": "movie",
+            "previewPosterUrl": "https://vz-294d587c-ef1.b-cdn.net/7c81706a-f015-4a75-8079-52c5da9d22a1/thumbnail.jpg",
+            "previewManifestUrl": "https://vz-294d587c-ef1.b-cdn.net/7c81706a-f015-4a75-8079-52c5da9d22a1/playlist.m3u8",
+            "thumbnailUrl": "https://rotor-sample.b-cdn.net/mockups/poster-200x300/charlie_chaplin_the_vagabond_1916-200x300.jpg",
+            "manifestUrl": "https://vz-294d587c-ef1.b-cdn.net/4da7e21c-8703-46dd-9572-ada6a7225c40/playlist.m3u8",
+            "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+        }
+    ],
+    "rows": [
+        {
+            "sort": 0,
+            "rowId": "row-0",
+            "displayType": "hero",
+            "title": "Best",
+            "contentList": ["ID3_D-0"]
+        },
+        {
+            "sort": 6,
+            "rowId": "row-6",
+            "displayType": "default",
+            "title": "Row4 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1"
+            ]
+        },
+        {
+            "sort": 5,
+            "rowId": "row-5",
+            "displayType": "default",
+            "title": "Row6 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0"
+            ]
+        },
+        {
+            "sort": 4,
+            "rowId": "row-4",
+            "displayType": "default",
+            "title": "Row5 Long, long",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4",
+                "ID0_D-5","ID1_D-5","ID2_D-5","ID3_D-5","ID4_D-5",
+                "ID0_D-6","ID1_D-6","ID2_D-6","ID3_D-6","ID4_D-6",
+                "ID0_D-7","ID1_D-7","ID2_D-7","ID3_D-7","ID4_D-7",
+                "ID0_D-8","ID1_D-8","ID2_D-8","ID3_D-8","ID4_D-8",
+                "ID0_D-9","ID1_D-9","ID2_D-9","ID3_D-9","ID4_D-9",
+                "ID0_D-10","ID1_D-10","ID2_D-10","ID3_D-10","ID4_D-10",
+                "ID0_D-11","ID1_D-11","ID2_D-11","ID3_D-11","ID4_D-11"
+            ]
+        },
+        {
+            "sort": 3,
+            "rowId": "row-3",
+            "displayType": "upcoming",
+            "title": "Upcoming",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1"
+            ]
+        },
+        {
+            "sort": 7,
+            "rowId": "row-7",
+            "displayType": "default",
+            "title": "Row8 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4"
+            ]
+        },
+        {
+            "sort": 8,
+            "rowId": "row-8",
+            "displayType": "default",
+            "title": "Row9 Title",
+            "contentList": [
+                "PROMO1", "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3"
+            ]
+        },
+        {
+            "sort": 9,
+            "rowId": "row-9",
+            "displayType": "default",
+            "title": "Row10 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","PROMO1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3"
+            ]
+        },
+        {
+            "sort": 10,
+            "rowId": "row-10",
+            "displayType": "default",
+            "title": "Row11 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4",
+                "ID0_D-5","ID1_D-5","ID2_D-5"
+            ]
+        },
+        {
+            "sort": 11,
+            "rowId": "row-11",
+            "displayType": "default",
+            "title": "Row12 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4",
+                "ID0_D-5","ID1_D-5","ID2_D-5","ID3_D-5","ID4_D-5",
+                "ID0_D-6","ID1_D-6","ID2_D-6","ID3_D-6","ID4_D-6",
+                "ID0_D-7","ID1_D-7","ID2_D-7","ID3_D-7"
+            ]
+        },
+        {
+            "sort": 12,
+            "rowId": "row-12",
+            "displayType": "default",
+            "title": "Row13 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4",
+                "ID0_D-5","ID1_D-5","ID2_D-5","ID3_D-5","ID4_D-5",
+                "ID0_D-6","ID1_D-6","ID2_D-6","ID3_D-6","ID4_D-6",
+                "ID0_D-7","ID1_D-7"
+            ]
+        },
+        {
+            "sort": 13,
+            "rowId": "row-13",
+            "displayType": "default",
+            "title": "Row14 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4",
+                "ID0_D-5","ID1_D-5","ID2_D-5","ID3_D-5","ID4_D-5",
+                "ID0_D-6","ID1_D-6","ID2_D-6","ID3_D-6","ID4_D-6",
+                "ID0_D-7","ID1_D-7","ID2_D-7","ID3_D-7","ID4_D-7"
+            ]
+        },
+        {
+            "sort": 14,
+            "rowId": "row-14",
+            "displayType": "default",
+            "title": "Row15 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4",
+                "ID0_D-5","ID1_D-5","ID2_D-5","ID3_D-5","ID4_D-5",
+                "ID0_D-6","ID1_D-6","ID2_D-6"
+            ]
+        },
+        {
+            "sort": 1,
+            "rowId": "row-1",
+            "displayType": "trending",
+            "title": "Trending",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3"
+            ]
+        },
+        {
+            "sort": 2,
+            "rowId": "row-2",
+            "displayType": "fast",
+            "title": "Super-smooth scrolling animation triggered by long-press",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4",
+                "ID0_D-5","ID1_D-5","ID2_D-5","ID3_D-5","ID4_D-5",
+                "ID0_D-6","ID1_D-6","ID2_D-6","ID3_D-6","ID4_D-6",
+                "ID0_D-7"
+            ]
+        },
+        {
+            "sort": 15,
+            "rowId": "row-15",
+            "displayType": "default",
+            "title": "Row16 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4"
+            ]
+        },
+        {
+            "sort": 16,
+            "rowId": "row-16",
+            "displayType": "default",
+            "title": "Row17 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4"
+            ]
+        },
+        {
+            "sort": 17,
+            "rowId": "row-17",
+            "displayType": "default",
+            "title": "Row18 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4"
+            ]
+        },
+        {
+            "sort": 18,
+            "rowId": "row-18",
+            "displayType": "default",
+            "title": "Row19 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4",
+                "ID0_D-5","ID1_D-5","ID2_D-5","ID3_D-5","ID4_D-5",
+                "ID0_D-6","ID1_D-6","ID2_D-6","ID3_D-6","ID4_D-6",
+                "ID0_D-7","ID1_D-7","ID2_D-7","ID3_D-7","ID4_D-7",
+                "ID0_D-8","ID1_D-8","ID2_D-8","ID3_D-8","ID4_D-8"
+            ]
+        },
+        {
+            "sort": 19,
+            "rowId": "row-19",
+            "displayType": "default",
+            "title": "Row20 Title",
+            "contentList": [
+                "ID0_D-0","ID1_D-0","ID2_D-0","ID3_D-0","ID4_D-0",
+                "ID0_D-1","ID1_D-1","ID2_D-1","ID3_D-1","ID4_D-1",
+                "ID0_D-2","ID1_D-2","ID2_D-2","ID3_D-2","ID4_D-2",
+                "ID0_D-3","ID1_D-3","ID2_D-3","ID3_D-3","ID4_D-3",
+                "ID0_D-4","ID1_D-4","ID2_D-4","ID3_D-4","ID4_D-4",
+                "ID0_D-5","ID1_D-5","ID2_D-5","ID3_D-5","ID4_D-5",
+                "ID0_D-6","ID1_D-6","ID2_D-6","ID3_D-6","ID4_D-6",
+                "ID0_D-7"
+
+            ]
+        }
+    ]
+}

@@ -1,0 +1,42 @@
+
+namespace Const.Carousel
+
+    enum Orientation
+        HORIZONTAL_AXIS = "x"
+        VERTICAL_AXIS = "y"
+    end enum
+
+    enum SlideAction
+        DEFAULT = "default"
+        PRELOAD = "preload"
+        MOVE_FORWARD = "move_forward"
+        MOVE_BACKWARD = "move_backward"
+        COLLAPSE = "collapse"
+    end enum
+
+    enum DisplayState
+        IS_IN_BEFORE_SECTION = "is_in_before_section"
+        IS_IN_MIDDLE_SECTION = "is_in_middle_section"
+        IS_IN_AFTER_SECTION = "is_in_after_section"
+        IS_OUT_OF_VIEWPORT = "is_out_of_viewport"
+    end enum
+
+    enum RenderUpdateMode
+        VIEWPORT = "viewport"
+        VIEWPORT_COLLAPSED = "viewport_collapsed"
+        ALL = "all"
+    end enum
+
+    enum TemplateUpdateMode
+        COLLAPSE_VIEWPORT = "collapse"
+        SKIP_CACHE = "skip_cache"
+        ONLY_AT_ZERO_INDEX = "only_ONLY_AT_ZERO_INDEX"
+        NEVER = "never"
+    end enum
+
+    enum LongPressAnimationMode
+        SEQUENTIAL = "sequential"
+        CONTINUOUS = "continuous"
+    end enum
+
+end namespace

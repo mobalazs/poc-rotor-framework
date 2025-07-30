@@ -1,0 +1,140 @@
+
+function getDialogUpdateTemplate(props)
+
+    ' Note: Always proceed or the most relevant button should be focused. Pease find setFocus() method below.
+
+    if props.proceedType = Const.Dialog.ProceedType.EXIT
+        return {
+            i18nService: {
+                l10nPath: ""
+            },
+            children: [
+                {
+                    id: "title",
+                    fields: {
+                        text: `@l10n.dialog.exitAppTitle`,
+                        color: UI.colors.white
+                    }
+                }, {
+                    id: "message",
+                    fields: {
+                        text: `@l10n.dialog.confirmExitAppMessage`,
+                        color: UI.colors.white
+                    }
+                }, {
+                    id: "buttonContainer",
+                    children: [
+                        {
+                            id: "dismissButton",
+                            viewModel: ViewModels.SimpleButton,
+                            props: {
+                                text: `@l10n.dialog.cancelButton`
+                            },
+                            focus: {
+                                onSelected: sub()
+                                    m.parent.getViewModel().dismiss()
+                                end sub
+                            }
+                        }, {
+                            id: "proceedButton",
+                            viewModel: ViewModels.SimpleButton,
+                            onMountWidget: sub() m.plugins.focus.setFocus() : end sub,
+                            props: {
+                                proceedType: props.proceedType,
+                                text: `@l10n.dialog.exitAppButton`
+                            },
+                            focus: {
+                                onSelected: sub()
+                                    ' ACTION
+                                    ' Exit app process
+                                    globalScope = GetGlobalAA()
+                                    appFw = globalScope.appFw
+                                    appFw.erase(["layout"])
+                                    globalScope.appFw.destroy()
+                                    globalScope.top.getScene().exitChannel = true
+                                end sub
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+
+    else if props.proceedType = Const.Dialog.ProceedType.ERROR
+
+        return {
+            children: [
+                {
+                    id: "title",
+                    fields: {
+                        text: props.title ?? "Dialog",
+                        color: UI.colors.error
+                    }
+                },
+                {
+                    id: "message",
+                    fields: {
+                        text: props.message ?? "",
+                        color: UI.colors.error
+                    }
+                }, {
+                    id: "buttonContainer",
+                    children: [
+                        {
+                            id: "dismissButton",
+                            viewModel: ViewModels.SimpleButton,
+                            onMountWidget: sub() m.plugins.focus.setFocus() : end sub,
+                            props: {
+                                text: props.text ?? `@l10n.dialog.okButton`
+                            },
+                            focus: {
+                                onSelected: sub()
+                                    m.parent.getViewModel().dismiss()
+                                end sub
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+
+    else
+
+        ' Custom dialog
+        return {
+            children: [
+                {
+                    id: "title",
+                    fields: {
+                        text: props.title ?? "Dialog"
+                    }
+                },
+                {
+                    id: "message",
+                    fields: {
+                        text: props.message ?? ""
+                    }
+                }, {
+                    id: "buttonContainer",
+                    children: [
+                        {
+                            id: "dismissButton",
+                            viewModel: ViewModels.SimpleButton,
+                            onMountWidget: sub() m.plugins.focus.setFocus() : end sub,
+                            props: {
+                                text: props.text ?? `@l10n.dialog.okButton`
+                            },
+                            focus: {
+                                onSelected: sub()
+                                    m.parent.getViewModel().dismiss()
+                                end sub
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+
+    end if
+
+end function

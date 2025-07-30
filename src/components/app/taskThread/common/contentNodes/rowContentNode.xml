@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<component name="RowContentNode" extends="ContentNode">
+    <interface>
+
+        <field id="contentList" type="nodeArray" />
+
+        <field id="contentId" type="string" />
+
+        <field id="displayType" type="string" />
+
+        <field id="title" type="string" />
+
+    </interface>
+</component>

@@ -1,0 +1,31 @@
+namespace ViewModels
+
+    class SeriesPage extends BasePage
+
+        override function template() as object
+            return {
+                focus: {
+                    group: {
+                        defaultFocusId: "rowListExample",
+                        back: "pageMenu"
+                    }
+                },
+                nodeType: "Group",
+                observer: m.showPageAnimationObserver,
+                children: [
+                    {
+                        id: "viewTitle",
+                        nodeType: "Label",
+                        tr: "menuItems." + m.props.pageKey,
+                        fontStyle: UI.fontStyles.H2_aa,
+                        fields: {
+                            text: "@l10n.menuItems." + m.props.pageKey + ".text"
+                        }
+                    }
+                ]
+            }
+        end function
+
+    end class
+
+end namespace

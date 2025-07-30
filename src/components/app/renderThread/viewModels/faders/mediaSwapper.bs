@@ -1,0 +1,483 @@
+
+import "imageFader.bs"
+import "previewVideo.bs"
+
+namespace ViewModels.Faders
+
+    enum PreviewVideoStates
+        VIDEO_IS_STOPPED = "video_is_stopped"
+        VIDEO_IS_PLAYING = "video_is_playing"
+        VIDEO_IS_PAUSED = "video_is_paused"
+        VIDEO_IS_INITIATED = "video_is_initiated"
+        NONE = "none"
+    end Enum
+
+    class swapState
+        content = invalid
+        wasParked = false
+        uid = ""
+    end class
+
+
+    class MediaSwapperLayer extends ViewModel
+
+        props = {
+            initialContent: invalid, ' Initial content is presented immediately without animation
+            autoPlayPreviewVideo: true,
+            videoStartTimerDuration: 1,
+            defaultThresholdDuration: 0.3,
+            animDuration: 0.3, ' Default fade animation duration
+            parkedAnimDurationRatio: 2 / 3,
+
+            displayProps: {
+                default: {
+                    width: UI.designResolution.w * 1.1 * 2 / 3, ' 1.1 -> 10% of image is under gradient
+                    height: UI.designResolution.h * 1.1 * 2 / 3,
+                    translation: [UI.designResolution.w / 3, UI.designResolution.h * -0.05]
+                },
+                fast: {
+                    width: UI.designResolution.w * 1.1 * 2 / 3, ' 1.1 -> 10% of image is under gradient
+                    height: UI.designResolution.h * 1.1 * 2 / 3,
+                    translation: [UI.designResolution.w / 3, UI.designResolution.h * -0.05]
+                },
+                trending: {
+                    width: UI.designResolution.w * 1.1 * 2 / 3, ' 1.1 -> 10% of image is under gradient
+                    height: UI.designResolution.h * 1.1 * 2 / 3,
+                    translation: [UI.designResolution.w / 3, UI.designResolution.h * -0.05]
+                },
+                upcoming: {
+                    width: UI.designResolution.w,
+                    height: UI.designResolution.h,
+                    translation: [0, 0]
+                },
+                hero: {
+                    width: UI.designResolution.w,
+                    height: UI.designResolution.h,
+                    translation: [0, 0]
+                },
+                promoTriple: {
+                    width: UI.designResolution.w * 1.1 * 2 / 3, ' 1.1 -> 10% of image is under gradient
+                    height: UI.designResolution.h * 1.1 * 2 / 3,
+                    translation: [UI.designResolution.w / 3, UI.designResolution.h * -0.05]
+                }
+            },
+            overlayDisplayProps: {
+                default: {
+                    imageUrl: UI.components.mediaBackground.quarterOverLayUrl,
+                    width: UI.designResolution.w,
+                    height: UI.designResolution.h,
+                    blendColor: UI.components.layout.appBackground.blendColor
+                },
+                trending: {
+                    imageUrl: UI.components.mediaBackground.quarterOverLayUrl,
+                    width: UI.designResolution.w,
+                    height: UI.designResolution.h,
+                    blendColor: UI.components.layout.appBackground.blendColor
+                },
+                fast: {
+                    imageUrl: UI.components.mediaBackground.quarterOverLayUrl,
+                    width: UI.designResolution.w,
+                    height: UI.designResolution.h,
+                    blendColor: UI.components.layout.appBackground.blendColor
+                },
+                upcoming: {
+                    imageUrl: UI.components.mediaBackground.fullOverlayUrl,
+                    width: UI.designResolution.w,
+                    height: UI.designResolution.h,
+                    blendColor: UI.components.layout.appBackground.blendColor
+                },
+                hero: {
+                    imageUrl: UI.components.mediaBackground.fullOverlayUrl,
+                    width: UI.designResolution.w,
+                    height: UI.designResolution.h,
+                    blendColor: UI.components.layout.appBackground.blendColor
+                },
+                promoTriple: {
+                    imageUrl: UI.components.mediaBackground.quarterOverLayUrl,
+                    width: UI.designResolution.w,
+                    height: UI.designResolution.h,
+                    blendColor: UI.components.layout.appBackground.blendColor
+                }
+            }
+        }
+
+        viewModelState = {
+            fadeAnimCompletionFlags: [true, true],
+            previewVideoState: PreviewVideoStates.VIDEO_IS_STOPPED,
+
+            isBusy: function() return m.fadeAnimCompletionFlags[0] = false or m.fadeAnimCompletionFlags[1] = false : end function,
+
+            current: new ViewModels.Faders.swapState(),
+            next: new ViewModels.Faders.swapState(),
+            parked: new ViewModels.Faders.swapState()
+        }
+
+        override function template() as object
+            return {
+                focus: {
+                },
+                children: [
+                    {
+                        id: "thresholdTimer",
+                        nodeType: "Timer",
+                        fields: {
+                            duration: m.props.defaultThresholdDuration
+                        },
+                        observer: {
+                            fieldId: "fire",
+                            callback: sub(payload)
+                                m.getViewModel().executeSwapToNext()
+                            end sub
+                        }
+                    }, {
+                        id: "videoStartTimer",
+                        nodeType: "Timer",
+                        fields: {
+                            duration: m.props.videoStartTimerDuration
+                        },
+                        observer: {
+                            fieldId: "fire",
+                            callback: sub(payload)
+                                m.getViewModel().loadVideo()
+                            end sub
+                        }
+                    }, {
+                        id: "previewVideo",
+                        viewModel: ViewModels.Faders.PreviewVideo,
+                        observer: {
+                            fieldId: "shouldShowVideo",
+                            alwaysNotify: false, ' notify only on changes
+                            callback: sub(payload)
+                                if payload.shouldShowVideo = true
+                                    m.getParentViewModel().showVideoScreen()
+                                else
+                                    m.getParentViewModel().hideVideoScreen()
+                                end if
+                            end sub
+                        }
+                    }, {
+                        id: "contentImageFader",
+                        viewModel: ViewModels.Faders.ImageFader,
+                        props: m.getContentImageProps(m.props.initialContent),
+                        fields: {
+                            index: 0
+                        },
+                        observer: {
+                            fieldId: "isFadeAnimationCompleted",
+                            infoFields: ["index"],
+                            callback: sub(payload)
+                                if payload.isFadeAnimationCompleted = true
+                                    m.getParentViewModel().setFadeAnimationReady(payload)
+                                end if
+                            end sub
+                        }
+                    }, {
+                        id: "mediaOverlayFader",
+                        viewModel: ViewModels.Faders.ImageFader,
+                        props: m.getContentOverlayProps(m.props.initialContent),
+                        fields: {
+                            index: 1
+                        },
+                        observer: {
+                            fieldId: "isFadeAnimationCompleted",
+                            infoFields: ["index"],
+                            callback: sub(payload)
+                                if payload.isFadeAnimationCompleted = true
+                                    m.getParentViewModel().setFadeAnimationReady(payload)
+                                end if
+                            end sub
+                        }
+                    }
+                ]
+            }
+        end function
+
+        override sub setProps(newProps as object)
+            m.props.append(newProps)
+            ' m.onUpdateView()
+        end sub
+
+        override sub onUpdateView()
+        end sub
+
+        override sub onMountView()
+            m.contentImageFader = m.getWidget("contentImageFader")
+            m.mediaOverlayFader = m.getWidget("mediaOverlayFader")
+            m.previewVideo = m.getWidget("previewVideo")
+            m.thresholdTimer = m.getWidget("thresholdTimer")
+            m.videoStartTimer = m.getWidget("videoStartTimer")
+
+            ' Manually set the current state
+            m.viewModelState.current.content = m.props.initialContent
+        end sub
+
+        override sub onDestroyView()
+            m.contentImageFade = invalid
+            m.mediaOverlayFader = invalid
+            m.previewVideo = invalid
+            m.thresholdTimer = invalid
+            m.videoStartTimer = invalid
+        end sub
+
+        ' sub onIsLongPressChanged(isLongPress)
+            '     if isLongPress
+            '         ' m.viewModelState.parked = new ViewModels.Faders.swapState()
+            '         if m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_PLAYING or m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_INITIATED
+            '             m.videoStartTimer.node.control = "stop"
+            '             m.pause()
+            '             ' hideVideoScreen will stop video when it will be hidden
+            '             m.hideVideoScreen()
+            '         end if
+            '     else
+            '         ' m.executeSwapToNext() ' TODO:
+            '     end if
+        ' end sub
+
+        sub onLongPressRelease()
+            m.executeSwapToNext()
+        end sub
+
+        sub swapTo(payload)
+            content = payload.content
+            uid = payload.uid
+
+            ' If longPress is active then just put new content into next and do nothing
+            if m.plugins.focus.isLongPressActive()
+                m.videoStartTimer.node.control = "stop"
+                m.pause()
+                m.viewModelState.next.content = content
+                m.viewModelState.next.uid = uid
+                return
+            end if
+
+            ' Pause if the same widget was focused again
+            if m.viewModelState.current.uid = uid
+                if m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_PAUSED
+                    m.resume()
+                    return
+                else
+                    m.videoStartTimer.node.control = "start"
+                    ' m.pause()
+                    return
+                end if
+            end if
+
+            ' if m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_INITIATED
+                m.videoStartTimer.node.control = "stop"
+            ' else if m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_PLAYING
+                m.pause()
+            ' end if
+
+
+
+            if m.viewModelState.isBusy() = true
+
+                ' Setup Parked state; If swapper is busy so park the payload.
+                m.viewModelState.parked = new ViewModels.Faders.swapState()
+                m.viewModelState.parked.content = content
+                m.viewModelState.parked.uid = uid
+
+            else
+                ' Parse thresholdDuration
+                thresholdDuration = payload.thresholdDuration ?? m.props.defaultThresholdDuration
+
+                ' Stop threshold timer
+                m.thresholdTimer.node.control = "stop"
+
+                ' Setup Next state
+                m.viewModelState.next.content = content
+                m.viewModelState.next.uid = uid
+
+                ' Execute swap immediately or wait by threshold time.
+                if thresholdDuration = 0
+                    m.executeSwapToNext()
+                else
+                    m.thresholdTimer.node.duration = thresholdDuration
+                    m.thresholdTimer.node.control = "start"
+                end if
+
+            end if
+
+        end sub
+
+        sub executeSwapToNext()
+
+            ' if m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_INITIATED
+                m.videoStartTimer.node.control = "stop"
+            ' else if m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_PLAYING
+                m.pause()
+            ' end if
+
+            ' Reset fade animation completion flags.
+            m.resetFadeAnimCompletionFlags()
+
+            currentState = m.viewModelState.current
+            nextState = m.viewModelState.next
+
+            ' Minimal robustness (only for stress test)
+            if nextState.content = invalid then return
+            if currentState.content = invalid then return
+
+            ' If the next state was parked earlier, then it fade faster.
+            animDuration = nextState.wasParked = true ? m.props.animDuration * m.props.parkedAnimDurationRatio : m.props.animDuration
+
+            currentOverlayProps = m.getContentOverlayProps(currentState.content)
+            nextOverlayProps = m.getContentOverlayProps(nextState.content)
+            shouldChangeOverlay = currentOverlayProps.imageUrl <> nextOverlayProps.imageUrl
+            ' Fade overlay images
+            if shouldChangeOverlay ' Should update condition
+                overlayProps = nextOverlayProps
+                overlayProps.append({
+                    animDuration: animDuration,
+                    delayIn: 0,
+                    delayOut: animDuration
+                })
+                m.mediaOverlayFader.fadeTo(overlayProps)
+            else
+                m.setFadeAnimationReady({
+                    index: 1,
+                    isFadeAnimationCompleted: true
+                })
+            end if
+
+            ' Fade content images
+            nextImageProps = m.getContentImageProps(nextState.content)
+            shouldChangeImage = currentState.uid <> nextState.uid
+            if shouldChangeImage ' Should update condition
+                contentImageProps = nextImageProps
+                contentImageProps.append({
+                    animDuration: animDuration,
+                    delayIn: shouldChangeOverlay ? animDuration : 0,
+                    delayOut: 0
+                })
+                m.contentImageFader.fadeTo(contentImageProps)
+            else
+                m.setFadeAnimationReady({
+                    index: 0,
+                    isFadeAnimationCompleted: true
+                })
+            end if
+
+        end sub
+
+        sub setFadeAnimationReady(payload)
+            m.viewModelState.fadeAnimCompletionFlags[payload.index] = payload.isFadeAnimationCompleted
+
+            if not m.viewModelState.isBusy() and m.plugins.focus.isLongPressActive() = false
+
+                m.finalizeSwap()
+            end if
+
+        end sub
+
+        sub finalizeSwap()
+
+            ' if m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_INITIATED
+                m.videoStartTimer.node.control = "stop"
+            ' else if m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_PLAYING
+                m.pause()
+            ' end if
+
+            ' Current state is next by now
+            m.viewModelState.current = m.viewModelState.next
+
+            if m.viewModelState.parked.content <> invalid
+
+                ' Free up parking state and set it to next state
+                m.viewModelState.next = m.viewModelState.parked
+                m.viewModelState.next.wasParked = true
+
+                ' Reset parked state
+                m.viewModelState.parked = new ViewModels.Faders.swapState()
+
+                m.executeSwapToNext()
+            else
+
+                ' Reset next state
+                m.viewModelState.next = new ViewModels.Faders.swapState()
+
+
+                m.videoStartTimer.node.control = "start"
+                m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_INITIATED
+
+            end if
+
+        end sub
+
+        function getContentImageProps(content)
+            props = m.props.displayProps[content.displayType]
+            props.imageUrl = content.previewPosterUrl
+            return props
+        end function
+
+        function getContentOverlayProps(content)
+            props = m.props.overlayDisplayProps[content.displayType]
+            return props
+        end function
+
+        sub resetFadeAnimCompletionFlags()
+            m.viewModelState.fadeAnimCompletionFlags[0] = false
+            m.viewModelState.fadeAnimCompletionFlags[1] = false
+        end sub
+
+
+        ' ---- Preview VIDEO state handlers ----
+
+        sub loadVideo()
+
+            currentSlot = m.viewModelState.current
+            if currentSlot.content = invalid then return
+
+            contentImageProps = m.getContentImageProps(currentSlot.content)
+
+            m.previewVideo.setProps({
+                content: currentSlot.content,
+                height: contentImageProps.height,
+                width: contentImageProps.width,
+                translation: contentImageProps.translation
+            })
+        end sub
+
+        sub showVideoScreen()
+            m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_PLAYING
+            m.contentImageFader.hideCurrent()
+        end sub
+
+        sub hideVideoScreen()
+            m.pause()
+            m.contentImageFader.showCurrent()
+        end sub
+
+        sub stop()
+            m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_STOPPED
+            m.previewVideo.stopVideo()
+        end sub
+
+        sub pause()
+            if m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_INITIATED
+                m.videoStartTimer.node.control = "stop"
+                m.viewModelState.previewVideoState = PreviewVideoStates.NONE
+            else if m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_PLAYING
+                m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_PAUSED
+                m.previewVideo.pauseVideo()
+            end if
+        end sub
+
+        sub resume()
+            if m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_PAUSED
+                m.viewModelState.previewVideoState = PreviewVideoStates.VIDEO_IS_PLAYING
+                m.previewVideo.resumeVideo()
+            end if
+        end sub
+
+        sub setVideoVisibility(shouldShow)
+            if shouldShow = false
+                ' m.previewVideo.pauseVideo()
+                m.stop()
+            end if
+            ' m.previewVideo.node.visible = shouldShow
+        end sub
+
+    end class
+
+end namespace

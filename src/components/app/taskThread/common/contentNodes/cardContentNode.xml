@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<component name="CardContentNode" extends="ContentNode">
+    <interface>
+
+        <!-- Unique content identifier -->
+        <field id="contentId" type="string" />
+
+        <!-- Main title and optional subtitle -->
+        <field id="title" type="string" />
+        <field id="subtitle" type="string" />
+
+        <!-- Logical type of the content, e.g. short, clip, movie -->
+        <field id="contentType" type="string" />
+        <field id="displayType" type="string" />
+
+        <!-- Thumbnail and preview poster image URLs -->
+        <field id="thumbnailUrl" type="string" />
+        <field id="previewPosterUrl" type="string" />
+
+        <!-- Full and preview manifest URLs for playback -->
+        <field id="manifestUrl" type="string" />
+        <field id="previewManifestUrl" type="string" />
+
+        <!-- Optional long-form description text -->
+        <field id="description" type="string" />
+
+        <field id="isRecentlyAdded" type="boolean" />
+
+        <!-- Localized button text(s), e.g. promo call-to-actions -->
+        <field id="buttonText" type="string" />
+
+    </interface>
+</component>

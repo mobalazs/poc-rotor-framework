@@ -1,0 +1,194 @@
+import "../busySpinner/busySpinner.bs"
+import "../layout/layout.bs"
+
+namespace ViewModels
+
+    class LoadingScreen extends ViewModel
+
+        ' viewModelState = {
+        '     dispatcher: invalid ' Dispatcher interfaces; Set by viewModel's plugin.
+        ' }
+
+        override function template() as object
+
+            return {
+                zIndex: 1,
+                nodeType: "Rectangle",
+                dispatcher: ["preloader", "appStore"],
+                fields: {
+                    color: UI.colors.black,
+                    width: UI.designResolution.w,
+                    height: UI.designResolution.h
+                },
+                children: [
+                    {
+                        id: "defaultSpinner",
+                        viewModel: ViewModels.BusySpinner,
+                        fields: {
+                            translation: [(UI.designResolution.w - UI.components.busySpinner.size.w) / 2, (UI.designResolution.h - UI.components.busySpinner.size.h) / 2]
+                        }
+                    },
+                    {
+                        nodeType: "LayoutGroup",
+                        fields: {
+                            itemSpacings: [10],
+                            horizAlignment: "center",
+                            vertAlignment: "center",
+                            translation: function() as object
+                                return [UI.designResolution.w / 2, UI.designResolution.h / 2 - 60]
+                            end function
+                        },
+                        children: [{
+                            nodeType: "Label",
+                            fontStyle: UI.fontStyles.appTitle_aa,
+                            fields: {
+                                text: "@l10n.loadingScreen.loading",
+                                color: UI.colors.white
+                            }
+                        }, {
+                            id: "almostDoneLabel",
+                            nodeType: "Label",
+                            fontStyle: UI.fontStyles.H3_aa,
+                            fields: {
+                                visible: false,
+                                text: "@l10n.loadingScreen.almostDone"
+                            }
+                        }]
+                    }
+                ]
+            }
+
+        end function
+
+        ' ViewModel lifecycle hook
+        override sub onMountView()
+
+            ' Listening for preloader dispatcher
+            m.viewModelState.dispatcher.preloader.addListener({
+                shouldUpdate: function(props, newState) as object
+                    return newState.resourcesReady = true
+                end function,
+                callback: m.onResourcesReady,
+                once: true
+            })
+
+            ' Dispatch intent to start asynchronous resource preloading
+            m.viewModelState.dispatcher.preloader.dispatch({
+                type: IntentTypes.Preloader.START_PRELOAD_RESOURCES
+            })
+
+        end sub
+
+
+        ' -------- Custom ViewModel Methods --------
+
+        sub onResourcesReady()
+
+            ' During pre-rendering we should not run animation at all, just show a static text
+            m.erase("defaultSpinner")
+
+            almostDoneLabel = m.getWidget("almostDoneLabel")
+            almostDoneLabel.render({
+                fields: {
+                    visible: true,
+                    enableRenderTracking: true
+                },
+                observer: {
+                    fieldId: "renderTracking",
+                    callback: sub(payload)
+                        if payload?.renderTracking = "full"
+                            m.getViewModel().onResourcesReadyHook()
+                        end if
+                    end sub,
+                    once: true
+                }
+            })
+        end sub
+
+        sub onResourcesReadyHook()
+
+            ' Fill ViewBuilder's Node Pool
+            m.setupNodePool()
+
+            ' Prerender layout
+            m.renderLayout()
+
+            ' Prerender pages (optional)
+            m.prerenderPages()
+
+            ' Notify layout about ready state
+            m.getSiblingWidget("layout").appReady()
+
+            ' remove loadingScreen (this widget)
+            m.erase()
+
+        end sub
+
+
+        sub setupNodePool()
+            ' Be aware of you requirements. Node Pool info is available on framework instance's getNodePoolInfo() method
+            m.getFrameworkInstance().createNodePool({
+                nodePool: [{
+                        nodeType: "Group",
+                        amount: 50
+                    }, {
+                        nodeType: "Rectangle",
+                        amount: 10
+                    }, {
+                        nodeType: "Poster",
+                        amount: 300
+                    }, {
+                        nodeType: "Label",
+                        amount: 20
+                    }
+                ]
+            })
+        end sub
+
+        sub renderLayout()
+            ' Add the layout view model below the loading screen by setting its zIndex accordingly
+            m.getRootWidget().render({
+                id: "layout",
+                zIndex: 0,
+                viewModel: ViewModels.Layout
+            })
+        end sub
+
+        sub prerenderPages()
+
+            pagesToRender = []
+
+            ' Get page settings from the app store
+            pageSettings = m.viewModelState.dispatcher.appStore.getState().pageSettings
+
+            ' Get pagesViewModels from the layout view model
+            pagesViewModels = m.getWidget("./layout").pagesViewModels
+
+            for each page in pageSettings
+                isPrerenderEnabled = page.enablePrerender
+                if isPrerenderEnabled = true
+                    pageViewModel = pagesViewModels[page.pageKey]
+                    pagesToRender.push({
+                        id: `page-${page.pageKey}`,
+                        viewModel: pageViewModel,
+                        props: {
+                            pageKey: page.pageKey
+                        }
+                    })
+                end if
+            end for
+
+            ' Render pages
+            m.parent.render({
+                id: "layout",
+                children: {
+                    id: "viewContainer",
+                    children: pagesToRender
+                }
+            })
+        end sub
+
+
+    end class
+
+end namespace

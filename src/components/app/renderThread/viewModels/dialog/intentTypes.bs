@@ -1,0 +1,8 @@
+
+namespace IntentTypes.Dialog
+
+    enum Modal
+        SHOW_DIALOG = "show_dialog"
+    end enum
+
+end namespace

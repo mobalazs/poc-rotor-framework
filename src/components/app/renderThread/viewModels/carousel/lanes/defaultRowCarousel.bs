@@ -1,0 +1,146 @@
+' Carousel view models
+import "pkg:/components/app/renderThread/viewModels/carousel/common/superDuperCarousel.bs"
+' Row view models
+import "../lanes/defaultCardCarousel.bs"
+import "../lanes/heroCardCarousel.bs"
+import "../lanes/fastCardCarousel.bs"
+import "../lanes/upcomingCardCarousel.bs"
+' Row-title view models
+import "additionalFeatures/rowTitles/defaultRowTitle.bs"
+' Carousel's local Logic for rows and cards
+import "../logic/defaultCarouselModel.bs"
+import "../logic/defaultCarouselReducer.bs"
+
+namespace ViewModels.Carousel
+
+    '''''''''
+    ' DefaultCarousel: Instance of Carousel viewModel; renders rows vertically.
+    '
+    '   Version: 1.0
+    '
+    '  Features beyond DefaultCarousel
+    '   * Row Title component
+    '   * Focus frame indicator support
+    '   * Basic stepIndex history
+    '
+    ' props:
+    '   # All carousel props and more below:
+    '   @focusFrameUrl {9.png} Optional. You can indicate focus in other ways, but this is the most Roku-style approach.
+    '   @dispatcherId {integer} Support MVI fot defaultCarouselLayer
+    '   @rowIndex {integer} Initial row index (initial stepIndex of this carousel)
+    '   @cardIndex {integer} Initial card index (Initial stepIndex of the carousel located by rowIndex)
+    '
+    '''''''''
+    class defaultRowCarousel extends ViewModels.Carousel.SuperDuperCarousel
+
+        props = {
+            config: {
+                axis: Const.Carousel.Orientation.VERTICAL_AXIS,
+                beforeSection: 0,
+                middleSection: UI.components.carousel.row.default.height + UI.components.carousel.row.rowSpacing,
+                afterSection: UI.components.carousel.row.default.height + UI.components.carousel.row.rowSpacing,
+                spacing: UI.components.carousel.row.rowSpacing,
+
+                animSpeed: UI.components.carousel.animSpeed,
+                animSpeedLongPress: UI.components.carousel.animSpeed,
+
+                enableWrap: true,
+                floatingFocusLimit: 0,
+                enableMiddleSectionCentered: false,
+                initialRenderUpdateMode: Const.Carousel.RenderUpdateMode.VIEWPORT,
+                animationMode: Const.Carousel.LongPressAnimationMode.SEQUENTIAL,
+
+                alignToContentBottom: true,
+
+                idPrefix: "row",
+                display: {
+                    default: {
+                        viewModel: ViewModels.Carousel.DefaultCardCarousel,
+                        size: UI.components.carousel.row.default.height
+                    },
+                    trending: {
+                        viewModel: ViewModels.Carousel.DefaultCardCarousel,
+                        size: UI.components.carousel.row.default.height
+                    },
+                    hero: {
+                        viewModel: ViewModels.Carousel.HeroCardCarousel,
+                        size: UI.components.carousel.row.hero.height
+                    },
+                    fast: {
+                        viewModel: ViewModels.Carousel.FastCardCarousel,
+                        size: UI.components.carousel.row.default.height
+                    },
+                    upcoming: {
+                        viewModel: ViewModels.Carousel.UpcomingCardCarousel,
+                        size: UI.components.carousel.row.default.height
+                    }
+                }
+            }
+        }
+
+        override function template() as object
+            return {
+                nodeType: "Group",
+                dispatcher: m.props.dispatcherId,
+                focus: {
+                    group: {
+                        autoSetIsFocusedOnContext: true,
+                        enableSpatialNavigation: false, ' turn off automatic spatial navigation
+                        defaultFocusId: function()
+                            return m.getFocusId()
+                        end function,
+
+                        up: function()
+                            return m.handleNavigation(-1)
+                        end function,
+                        down: function()
+                            return m.handleNavigation(1)
+                        end function,
+
+                        longPressHandler: function(isLongPress, key) as boolean
+                            if key = "up" or key = "down"
+                                m.handleLongPress(isLongPress, key = "up" ? - 1 : 1)
+                            end if
+                            return false
+                        end function
+
+                    }
+                },
+                children: [
+                    {
+                        nodeType: "Group",
+                        id: "slotContainer"
+                    }
+                ]
+            }
+        end function
+
+
+        override sub onMountView()
+            m.history = {}
+
+            m.focusIndicatorWidget = m.children.focusIndicator
+
+            ' Set initial row index (ROW INDEX)
+            m.props.stepIndex = Rotor.Utils.min(m.props.rowIndex, m.props.contentList.Count() - 1)
+
+            super.onMountView()
+        end sub
+
+
+        ' Note: This viewModel is a Carousel, and it's each of slot is also a carousel, that is why
+        ' these slots should be feed by what a Carousel needs.
+        override function onCreateSlotHook(slot)
+            cardIndex = slot.contentIndex = m.props.rowIndex ? Rotor.Utils.min(m.props.cardIndex, m.carousel.contentCount - 1) : 0
+            return {
+                contentId: slot.content.contentId,
+                content: slot.content, ' this row content (contentNode)
+                contentList: slot.content.contentList, ' list of cards in this row (array of contentNodes)
+                cardIndex: cardIndex, ' Set initial stepIndex in a row (CARD INDEX)
+                dispatcherId: m.props.dispatcherId
+            }
+        end function
+
+    end class
+
+end namespace

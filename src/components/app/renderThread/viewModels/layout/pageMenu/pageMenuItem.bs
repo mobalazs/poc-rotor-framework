@@ -1,0 +1,120 @@
+namespace ViewModels
+
+    class PageMenuItem extends ViewModel
+
+        override sub onMountView()
+            m.appStoreDispatcher = m.getDispatcher("appStore")
+        end sub
+
+        override sub onDestroyView()
+            m.appStoreDispatcher.destroy()
+        end sub
+
+        override sub onUpdateView()
+            itemIconWidget = m.getWidget("itemIcon")
+            itemIconWidget.refresh("fields.blendColor")
+            itemLabel = m.getWidget("itemLabel")
+            itemLabel.refresh("fields.color")
+        end sub
+
+        override sub setProps(newProps as object)
+            m.props.append(newProps)
+            m.onUpdateView()
+        end sub
+
+
+
+        sub onSelected()
+            if m.props.isActive = false
+                m.appStoreDispatcher.dispatch({
+                    type: IntentTypes.AppStore.SET_ACTIVE_PAGE_KEY,
+                    payload: {
+                        activePageKey: m.props.optionKey
+                    }
+                })
+            end if
+        end sub
+
+        override function template() as object
+
+            return {
+                nodeType: "Group",
+                focus: {
+                    onFocusChanged: sub (isFocused)
+                        m.onUpdateView()
+                    end sub,
+
+                    onFocus: sub ()
+                        m.onUpdateView()
+                        if m.props.enableAutoSelectOnFocus = true
+                            m.getViewModel().onSelected()
+                        end if
+                    end sub,
+
+                    onSelected: sub()
+                        m.getViewModel().onSelected()
+                    end sub
+                },
+                viewModelState: {
+                    isFocused: false ' as default
+                },
+                fields: {
+                    translation: function() as object
+                        if Rotor.Utils.isArray(m.props.translation)
+                            return m.props.translation
+                        else
+                            marginBottom = UI.components.pageMenu.marginBottom
+                            return [0, m.props.optionIndex * (UI.components.pageMenu.labelHeight + (marginBottom ?? 0))]
+                        end if
+                    end function
+                },
+                children: [
+                    {
+                        id: "itemIcon",
+                        nodeType: "Poster",
+                        fields: {
+                            blendColor: function() as string
+                                if m.viewModelState.isFocused
+                                    return UI.components.pageMenu.textColor.focused
+                                else
+                                    return m.props.isActive ? UI.components.pageMenu.textColor.active : UI.components.pageMenu.textColor.default
+                                end if
+                            end function,
+                            width: UI.components.pageMenu.icon.size.width,
+                            height: UI.components.pageMenu.icon.size.height,
+                            uri: (UI.components.pageMenu.menuIcons_aa)[m.props.optionKey].url,
+                            translation: function() ' expression example
+                                return [UI.components.pageMenu.labelWidth + UI.components.pageMenu.marginRight, 0]
+                            end function
+                        }
+                    }, {
+
+                        id: "itemLabel",
+                        nodeType: "Label",
+                        fontStyle: UI.components.pageMenu.fontStyle_aa,
+                        onMountWidget: sub()
+                            m.animationIndex = m.props.optionIndex ' will be used to sort labelItems for animation
+                        end sub,
+                        fields: {
+                            color: function() as string
+                                if m.viewModelState.isFocused
+                                    return UI.components.pageMenu.textColor.focused
+                                else
+                                    return m.props.isActive ? UI.components.pageMenu.textColor.active : UI.components.pageMenu.textColor.default
+                                end if
+                            end function,
+                            text: `@l10n.menuItems.${m.props.optionKey}.text`,
+                            width: m.props.width ?? UI.components.pageMenu.labelWidth,
+                            height: UI.components.pageMenu.labelHeight,
+                            vertAlign: "center",
+                            horizAlign: "right"
+                        }
+                    }
+                ]
+            }
+
+        end function
+
+    end class
+
+end namespace

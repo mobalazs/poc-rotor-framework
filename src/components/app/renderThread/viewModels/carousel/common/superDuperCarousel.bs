@@ -1,0 +1,520 @@
+import "sdcNavigation.bs"
+
+namespace ViewModels.Carousel
+    '******************************************************************
+    '** @class SuperDuperCarousel
+    '** @version 0.1
+    '** @brief ViewModel for advanced horizontal/vertical carousels.
+    '** @namespace ViewModels.Carousel
+    '** @extends ViewModels.Carousel.SDCNavigation
+    '******************************************************************
+    '  ▗▄▄▖▗▖ ▗▖▗▄▄▖ ▗▄▄▄▖▗▄▄▖      ▗▄▄▄  ▗▖ ▗▖▗▄▄▖ ▗▄▄▄▖▗▄▄▖      ▗▄▄▖ ▗▄▖ ▗▄▄▖  ▗▄▖ ▗▖ ▗▖ ▗▄▄▖▗▄▄▄▖▗▖
+    ' ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌   ▐▌ ▐▌     ▐▌  █ ▐▌ ▐▌▐▌ ▐▌▐▌   ▐▌ ▐▌    ▐▌   ▐▌ ▐▌▐▌ ▐▌▐▌ ▐▌▐▌ ▐▌▐▌   ▐▌   ▐▌
+    '  ▝▀▚▖▐▌ ▐▌▐▛▀▘ ▐▛▀▀▘▐▛▀▚▖ ▄▄▄ ▐▌  █ ▐▌ ▐▌▐▛▀▘ ▐▛▀▀▘▐▛▀▚▖    ▐▌   ▐▛▀▜▌▐▛▀▚▖▐▌ ▐▌▐▌ ▐▌ ▝▀▚▖▐▛▀▀▘▐▌
+    ' ▗▄▄▞▘▝▚▄▞▘▐▌   ▐▙▄▄▖▐▌ ▐▌     ▐▙▄▄▀ ▝▚▄▞▘▐▌   ▐▙▄▄▖▐▌ ▐▌    ▝▚▄▄▖▐▌ ▐▌▐▌ ▐▌▝▚▄▞▘▝▚▄▞▘▗▄▄▞▘▐▙▄▄▖▐▙▄▄▖
+    '                                                                          Powered by Rotor Framework™
+    '
+    ' Carousel View Model: vertical/horizontal swimlanes
+    '
+    ' Key features:
+    '   Multi-dimension,
+    '   Multi-Orientation,
+    '   Grayed out edges,
+    '   Infinite forward wrapping,
+    '   Long-press (smooth scroll on long-press),
+    '   Fixed focus,
+    '   Centered content
+    '   Moving focus frame
+    '   Intersection Ratio calculator
+    '
+    '
+    ' props:
+    '   @stepIndex {integer}
+    '   @config {object}
+    '       @axis {string} [x|Y]
+    '       @beforeSection {integer} Rendered and faded items
+    '       @middleSection {integer} Rendered items in the middle size
+    '       @afterSection {integer} Rendered and faded items
+    '       @spacing {integer} spacing between items
+    '       @animSpeed {integer} unit: 1 px per millisecond
+    '       @animSpeedLongPress {integer} unit: 1 px per millisecond
+    '       @enableWrap {boolean}
+    '       @enableMiddleSectionCentered {boolean} Center items in the middle of middleSection when there are only few items in it.
+    '       @animationMode: {Const.Carousel.LongPressAnimationMode} SMOOTH: all slots will be rendered; STEPWISE: dynamic rendering.
+    '       @floatingFocusLimit {boolean} When enabled, focus navigation is limited to a fixed range without triggering sliding.
+    '       @templateUpdateMode {Const.Carousel.TemplateUpdateMode} Control WHEN generate new templates for viewport
+    '       @initialRenderUpdateMode {Const.Carousel.RenderUpdateMode} Control HOW generate the first templates for viewport
+    '       @alignToContentBottom {boolean} enable align carousel to bottom of cards
+    '       @idPrefix {string}
+    '
+    '       @display: {object}
+    '           @default: {object}
+    '               @viewModel: {ViewModel}
+    '               @size: {integer}
+    '               @expandSizeBackward: {integer} Modify offset of all slots before the current slot. ONLY floatingFocusLimit = 0 is supported
+    '               @expandSizeForward: {integer} Modify offset of all slots after the current slot. ONLY floatingFocusLimit = 0 is supported
+    '
+    '   @contentList {array of contentNodes) This is the list of rows for carousel
+    '       @contentList {array of contentNodes) List of cards for carousel
+    '       @displayType {string} Used as reference key for display props. Example: m.props.config.display[<displayType>]
+    '
+    class SuperDuperCarousel extends ViewModels.Carousel.SDCNavigation
+
+        ' --- Member Variables ---
+
+
+
+        '''''''''
+        ' template: Provides the basic nodeType structure for the carousel container.
+        ' @override
+        ' @return {object} The node definition AA.
+        '''''''''
+        override function template() as object
+            return {
+                nodeType: "Group",
+                children: [
+                    {
+                        nodeType: "Group",
+                        id: "slotContainer" ' Container node for carousel items
+                    }
+                ]
+            }
+        end function
+
+        '''''''''
+        ' onMountView: Called after the ViewModel's node tree is mounted.
+        ' Initializes carousel state and performs the initial render.
+        ' @override
+        '''''''''
+        override sub onMountView()
+            ' device info check
+            if m.getInfo().device.graphicsPlatform = "directfb"
+                ' Disable smooth long-press animation (dynamic render) on low-end devices without opengl
+                m.props.config.animationMode = Const.Carousel.LongPressAnimationMode.SEQUENTIAL
+            end if
+
+            ' Store reference to the slot container widget
+            m.slotContainerWidget = m.getWidget("slotContainer")
+
+            m.carouselPreprocessor()
+        end sub
+
+        ' override sub onUpdateView()
+        '     m.carouselPreprocessor()
+        ' end sub
+
+        '''''''''
+        ' templateProvider: Core logic to determine which slots should be visible/rendered based on current stepIndex and slideOffset and other carousel config.
+        ' Calculates necessary slot properties and generates render templates for slots.
+        ' @return {object} An roArray of node definition AAs for rendering changes.
+        '''''''''
+        function templateProvider(renderUpdateMode, stepIndex = invalid, slideAction = "none") as object
+            if stepIndex = invalid then stepIndex = m.props.stepIndex
+            if slideAction <> Const.Carousel.SlideAction.PRELOAD
+                ' # Configured restrictions
+                if m.props.config.templateUpdateMode = Const.Carousel.TemplateUpdateMode.NEVER then return invalid
+                if m.props.config.templateUpdateMode = Const.Carousel.TemplateUpdateMode.ONLY_AT_ZERO_INDEX and stepIndex <> 0 then return invalid
+            else
+
+                if renderUpdateMode <> Const.Carousel.TemplateUpdateMode.SKIP_CACHE
+                    ' # Resolve from cache
+                    templates = m.resolveTemplate(renderUpdateMode, stepIndex, slideAction)
+                    if templates <> invalid then return templates
+                end if
+
+            end if
+
+            templates = {}
+
+            ' # Generate templates
+
+            slideOffset = m.getSlideOffset(stepIndex)
+            config = m.props.config
+            spacing = config.spacing
+            display = config.display
+            isCarouselOnBase = stepIndex = 0
+            staticFocusedIndex = Rotor.Utils.getWrappedIndex(stepIndex + m.carousel.focusPointer, m.carousel.contentCount)
+            if renderUpdateMode = Const.Carousel.RenderUpdateMode.VIEWPORT_COLLAPSED
+                expandSizeBackward = 0
+                expandSizeForward = 0
+            else
+                expandSizeBackward = display[m.props.contentList[staticFocusedIndex].displayType]?.expandSizeBackward ?? 0
+                expandSizeForward = display[m.props.contentList[staticFocusedIndex].displayType]?.expandSizeForward ?? 0
+            end if
+
+            ' (1) Fill beforeSection
+
+            baseContentSize = m.getContentSize(stepIndex) + m.props.config.spacing
+            closingOffsetLimit = slideOffset - (config.beforeSection + baseContentSize + m.carousel.centerOffset) - expandSizeBackward
+            if renderUpdateMode = Const.Carousel.RenderUpdateMode.ALL
+                closingOffsetLimit -= slideOffset
+            end if
+            renderIndex = stepIndex - 1
+            offset = slideOffset + m.carousel.centerOffset - expandSizeBackward
+            maxSlotLimitBefore = stepIndex
+            while offset > closingOffsetLimit and (m.carousel.isWrapped or maxSlotLimitBefore > -renderIndex) ' and stepIndex > 0
+                id = m.generateId(renderIndex)
+
+                content = m.props.contentList[Rotor.Utils.getWrappedIndex(renderIndex, m.carousel.contentCount)]
+                size = display[content.displayType].size
+                offset -= spacing + size
+
+                slot = m.buildSlot(id, renderIndex, slideOffset, offset, size, content, isCarouselOnBase)
+
+                if slot.enableUpdateTemplate = true or slideAction = Const.Carousel.SlideAction.PRELOAD
+                    templates[id] = m.slotToTemplate(slot)
+                end if
+
+                renderIndex--
+            end while
+
+            ' (2) Fill middleSection and afterSection
+
+            renderIndex = stepIndex
+
+            offset = slideOffset + m.carousel.centerOffset
+            continue = true
+            while continue
+                id = m.generateId(renderIndex)
+
+                content = m.props.contentList[Rotor.Utils.getWrappedIndex(renderIndex, m.carousel.contentCount)]
+                size = m.getContentSize(renderIndex)
+                slot = m.buildSlot(id, renderIndex, slideOffset, offset, size, content, isCarouselOnBase)
+
+                if slot.enableUpdateTemplate = true or slideAction = Const.Carousel.SlideAction.PRELOAD
+                    templates[id] = m.slotToTemplate(slot)
+                end if
+
+                offset += size + spacing + (renderIndex = stepIndex ? expandSizeForward : 0) ' Calculate next slot offset
+                renderIndex++
+
+                ' LOOP condition
+                viewportFromOffsetSize = config.middleSection + config.afterSection + m.getContentSize(m.carousel.contentCount - 1) + expandSizeForward
+                whileUnwrapped = m.carousel.isWrapped or renderIndex < m.carousel.contentCount
+                if renderUpdateMode = Const.Carousel.RenderUpdateMode.ALL
+                    continue = whileUnwrapped and offset <= slideOffset + viewportFromOffsetSize + m.carousel.loopExtent
+                else ' Ony size of viewport
+                    continue = whileUnwrapped and (offset <= slideOffset + viewportFromOffsetSize)
+                end if
+            end while
+
+            if renderUpdateMode = Const.Carousel.TemplateUpdateMode.SKIP_CACHE
+                return m.beforeTemplatesRenderedHook(m.getAllValues(templates), m.props.stepIndex, renderUpdateMode, slideAction)
+            else
+                m.carousel.templateCache[renderUpdateMode][`stepIndex_${stepIndex}`] = templates
+                return m.resolveTemplate(renderUpdateMode, stepIndex, slideAction)
+            end if
+
+        end function
+
+        function resolveTemplate(renderUpdateMode as string, stepIndex, slideAction)
+            res = m.carousel.templateCache[renderUpdateMode][`stepIndex_${stepIndex}`]
+            if res = invalid then return invalid
+            return m.beforeTemplatesRenderedHook(m.getAllValues(Rotor.Utils.deepCopy(res)), m.props.stepIndex, renderUpdateMode, slideAction)
+        end function
+
+        '''''''''
+        ' buildSlot: Creates or updates the internal state object for a single slot and generates its render template if needed.
+        '
+        ' @param {string} renderUpdateMode Has affect on amount of output templates
+        ' @param {string} id The unique ID for this slot instance.
+        ' @param {integer} renderIndex The logical index in the potentially doubled list.
+        ' @param {float} slideOffset Carousel's current offset
+        ' @param {float} offset The calculated top/left position of the slot relative to the virtual start.
+        ' @param {float} size The size (width/height) of the slot.
+        ' @param {object} content The data object for this slot's content.
+        ' @param {boolean} isCarouselOnBase Flag indicating if the carousel focus is on the logical first item.
+        '''''''''
+        function buildSlot(id, renderIndex as integer, slideOffset as float, offset as float, size as float, content as object, isCarouselOnBase as boolean) as object
+            config = m.props.config
+            middleSection = config.middleSection
+            afterSection = config.afterSection
+            beforeSection = config.beforeSection
+            slideOffset += m.carousel.centerOffset
+
+            ' Determine display state based on original logic
+            if offset + size > slideOffset - beforeSection and offset + size <= slideOffset
+                displayState = Const.Carousel.DisplayState.IS_IN_BEFORE_SECTION
+            else if offset >= slideOffset and offset + size <= slideOffset + middleSection
+                displayState = Const.Carousel.DisplayState.IS_IN_MIDDLE_SECTION
+            else if offset + size > slideOffset + middleSection and offset < slideOffset + middleSection + afterSection
+                displayState = Const.Carousel.DisplayState.IS_IN_AFTER_SECTION
+            else
+                displayState = Const.Carousel.DisplayState.IS_OUT_OF_VIEWPORT
+            end if
+
+            slot = {
+                id: id,
+                renderIndex: renderIndex,
+                content: content,
+                contentIndex: Rotor.Utils.getWrappedIndex(renderIndex, m.carousel.contentCount),
+                size: size,
+                offset: offset,
+                displayState: displayState,
+                isCarouselOnBase: isCarouselOnBase,
+                isLastRenderIndex: not m.carousel.isWrapped and renderIndex = m.carousel.contentCount - 1,
+                intersectionRatio: Rotor.Utils.max(0, Rotor.Utils.min(offset + size, slideOffset + middleSection + afterSection) - Rotor.Utils.max(offset, slideOffset - beforeSection)) / size,
+                enableUpdateTemplate: true
+            }
+
+            ' HOOK on create
+            ' shouldRender = m.slotContainerWidget.children[id] = invalid  ' TODO: RECONSIDER condition
+            ' if shouldRender
+            ' Add custom initial props to slot
+            slot.append(m.onCreateSlotHook(slot))
+            ' end if
+
+            return slot
+        end function
+
+        function getAllValues(aa as object) as object
+            if type(aa) <> "roAssociativeArray"
+                print "Error: Input is not an associative array."
+                return invalid
+            end if
+
+            valuesArray = createObject("roArray", aa.count(), true)
+
+            for each key in aa.keys()
+                valuesArray.push(aa[key])
+            end for
+
+            return valuesArray
+        end function
+
+        '''''''''
+        ' carouselPreprocessor: Performs initial calculations and setup when content changes.
+        '''''''''
+        sub carouselPreprocessor()
+            contentList = m.props.contentList
+            stepIndex = m.props.stepIndex
+
+            ' # Pre-calculations (once per contentList update)
+            result = m.measureContentList(contentList, stepIndex)
+            m.carousel.append({
+                centerOffset: result.centerOffset,
+                loopExtent: result.loopExtent,
+                contentCount: result.contentCount,
+                slideOffset: result.slideOffset,
+                maxSize: result.maxSize,
+                minSize: result.minSize,
+                slotOffsets: result.slotOffsets,
+                isWrapped: result.isWrapped
+            })
+
+            ' # inject animation observer to slotContainer
+            m.injectTranslationObserver()
+
+            ' # cache slot changed for continuous animation
+            m.preprocessTemplateCache()
+
+            ' # Get templates and render
+            m.prerenderTemplates()
+
+        end sub
+
+        function measureContentList(contentList, currentStepIndex)
+            contentCount = contentList.Count()
+            ' Calculate loopExtent and m.maxSize
+            slotOffsets = []
+            config = m.props.config
+            spacing = config.spacing
+
+            slideOffset = 0
+            slotOffset = 0
+            maxSize = 0
+            minSize = 0
+            for contentIndex = 0 to contentList.Count() - 1
+                content = contentList[contentIndex]
+                size = config.display[content.displayType].size
+                if contentIndex = currentStepIndex
+                    slideOffset = slotOffset
+                end if
+                slotOffsets[contentIndex] = slotOffset
+                slotOffset += size + spacing
+                ' Find max item size
+                maxSize = Rotor.Utils.max(maxSize, size)
+                ' Find min item size
+                minSize = Rotor.Utils.max(minSize, size)
+            end for
+
+            loopExtent = slotOffset
+
+            ' Calculate offset for enableMiddleSectionCentered feature
+            if config.enableMiddleSectionCentered = true and loopExtent <= config.middleSection
+                centerOffset = -Int((loopExtent - spacing - config.middleSection) / 2)
+            else
+                centerOffset = 0
+            end if
+
+            isWrapped = config.enableWrap and loopExtent > config.middleSection + config.afterSection
+
+            return {
+                centerOffset: centerOffset,
+                contentCount: contentCount,
+                loopExtent: loopExtent,
+                slideOffset: slideOffset,
+                slotOffsets: slotOffsets,
+                maxSize: maxSize,
+                minSize: minSize,
+                isWrapped: isWrapped
+            }
+        end function
+
+        sub preprocessTemplateCache()
+            ' Create cache structure
+            m.carousel.templateCache[Const.Carousel.RenderUpdateMode.ALL] = {}
+            m.carousel.templateCache[Const.Carousel.RenderUpdateMode.VIEWPORT] = {}
+            m.carousel.templateCache[Const.Carousel.RenderUpdateMode.VIEWPORT_COLLAPSED] = {}
+
+            ' At zero index, full viewport is required when slotContainer return to zero stepIndex.
+            m.templateProvider(Const.Carousel.RenderUpdateMode.VIEWPORT, 0, Const.Carousel.SlideAction.PRELOAD)
+
+            ' Prefill VIEWPORT cache
+            ' if m.props.config.initialRenderUpdateMode <> Const.Carousel.RenderUpdateMode.ALL
+                ' for renderIndex = 0 to m.carousel.contentCount - 1
+                    ' m.templateProvider(Const.Carousel.RenderUpdateMode.VIEWPORT, renderIndex, Const.Carousel.SlideAction.PRELOAD)
+                    ' m.templateProvider(Const.Carousel.RenderUpdateMode.VIEWPORT_COLLAPSED, renderIndex, Const.Carousel.SlideAction.PRELOAD)
+                ' end for
+            ' end if
+        end sub
+
+        sub prerenderTemplates()
+
+            ' Render widgets
+            initialRenderUpdateMode = m.props.config.initialRenderUpdateMode ?? Const.Carousel.RenderUpdateMode.VIEWPORT
+            templates = m.templateProvider(initialRenderUpdateMode, m.props.stepIndex, Const.Carousel.SlideAction.PRELOAD)
+
+            ' Rendering
+            m.renderTemplates(templates)
+            ' Set carousel translation to current slide offset
+            slideOffset = m.getSlideOffset()
+            slideOffset += (m.props.config.alignToContentBottom ?? false) ? m.getContentSize(m.props.stepIndex) : 0
+            m.slotContainerWidget.node.translation = m.props.config.axis = Const.Carousel.Orientation.HORIZONTAL_AXIS ? [-slideOffset, 0] : [0, -slideOffset]
+        end sub
+
+        function slotToTemplate(slot)
+            return {
+                id: slot.id,
+                viewModel: m.props.config.display[slot.content.displayType].viewModel,
+                props: Rotor.Utils.deepCopy(slot)
+            }
+        end function
+
+        sub renderTemplates(templates)
+            m.slotContainerWidget.render({
+                children: templates
+            })
+        end sub
+
+
+        ' ====================
+        ' == HOOKS          ==
+        ' ====================
+
+        function onCreateSlotHook(slot) as object
+            ' Optional override point (Original comment)
+            return {}
+        end function
+
+        function beforeTemplatesRenderedHook(templates, stepIndex, renderUpdateMode, slideAction) as object
+            return templates
+        end function
+
+        sub onSlotContainerReturnCopyFieldsHook(template, fromWidget, toWidget)
+        end sub
+
+        sub onSlotWidgetFocusedHook(focusedWidget)
+        end sub
+
+        ' ====================
+        ' == HELPERS        ==
+        ' ====================
+
+        '''''''''
+        ' calcDuration: Calculates animation duration based on speed and distance between two points.
+        ' @param {float} speed Speed in px/ms (or similar unit).
+        ' @param {integer} p1 First position coordinate.
+        ' @param {integer} p2 Second position coordinate (default 0).
+        ' @return {float} Duration in seconds.
+        '''''''''
+
+        function calcDuration(speed as float, p1 as integer, p2 = 0 as integer) as float
+            distance = Abs(p1 - p2)
+            ' Avoid division by zero
+            if speed = 0 then return 0.0
+            return distance / speed / 1000 ' Convert ms based speed to seconds duration
+        end function
+
+        '''''''''
+        ' calcDurationFromCurrentSlideOffset: Calculates animation duration from the current visual position
+        ' of the slot container to a target offset.
+        ' @param {float} speed Speed in px/ms.
+        ' @param {float} nextSlideOffset The target offset value (negative of target translation).
+        ' @return {float} Duration in seconds.
+        '''''''''
+        function calcDurationFromCurrentSlideOffset(speed as float, nextSlideOffset as float) as float
+            currentTranslation = m.getCurrentSlotContainerOffset() ' Get current visual position
+            return m.calcDuration(speed, nextSlideOffset, currentTranslation) ' Use helper with current/target
+        end function
+
+        function getCurrentSlotContainerOffset()
+            isX = m.props.config.axis = Const.Carousel.Orientation.HORIZONTAL_AXIS
+            return m.slotContainerWidget.node.translation[isX ? 0 : 1]
+        end function
+
+        function generateId(renderIndex as integer) as string
+            return `carousel_${m.props.config.idPrefix}_${renderIndex}`
+        end function
+
+        function getFocusedIndex() as integer
+            return m.props.stepIndex ?? 0 + m.carousel.focusPointer
+        end function
+
+        function getFocusId() as string
+            return m.generateId(m.getFocusedIndex())
+        end function
+
+        function getContentSize(renderIndex = 0) as object
+            contentIndex = Rotor.Utils.getWrappedIndex(renderIndex, m.carousel.contentCount)
+            content = m.props.contentList[contentIndex]
+            size = m.props.config.display[content.displayType].size
+            return size
+        end function
+
+        function getFocusedContentIndex()
+            focusIndex = m.getFocusedIndex()
+            contentIndex = Rotor.Utils.getWrappedIndex(focusIndex, m.carousel.contentCount)
+            return contentIndex
+        end function
+
+        function getFocusedContent()
+            contentIndex = m.getFocusedContentIndex()
+            return m.props.contentList[contentIndex]
+        end function
+
+        function getFocusedWidget()
+            return m.slotContainerWidget.children[m.getFocusId()]
+        end function
+
+        function getBaseWidget()
+            return m.slotContainerWidget.children[m.generateId(m.props.stepIndex)]
+        end function
+
+        function getSlotWidget(renderIndex)
+            return m.slotContainerWidget.children[m.generateId(renderIndex)]
+        end function
+
+        function getSlideOffset(renderIndex = invalid)
+            ' Future improvement: reduce complexity, find better solution
+            if renderIndex = invalid then renderIndex = m.props.stepIndex
+            if renderIndex = -1 then return -m.getContentSize(-1) - m.props.config.spacing
+            if renderIndex = m.carousel.contentCount then return m.carousel.loopExtent + m.getContentSize(-1)
+            return m.carousel.slotOffsets[renderIndex]
+        end function
+
+    end class
+
+
+
+end namespace

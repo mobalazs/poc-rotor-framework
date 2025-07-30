@@ -1,0 +1,81 @@
+namespace ViewModels
+
+    class BusySpinner extends ViewModel
+
+        override function template() as object
+            return {
+                id: "defaultSpinner",
+                nodeType: "Group",
+                fields: {
+                    visible: true,
+                    width: UI.components.busySpinner.size.w,
+                    height: UI.components.busySpinner.size.h,
+                    loadWidth: UI.components.busySpinner.size.w,
+                    loadHeight: UI.components.busySpinner.size.h,
+                    enableRenderTracking: true
+                },
+                observer: {
+                    fieldId: "renderTracking",
+                    callback: sub(payload)
+                        if payload?.renderTracking = "full"
+
+                            m.startAnimation()
+
+                        end if
+
+                    end sub
+                },
+                children: [
+                    {
+                        id: "outerPoster",
+                        nodeType: "Poster",
+                        fields: {
+                            uri: UI.components.busySpinner.url,
+                            visible: true,
+                            width: UI.components.busySpinner.size.w,
+                            height: UI.components.busySpinner.size.h,
+                            loadWidth: UI.components.busySpinner.size.w,
+                            loadHeight: UI.components.busySpinner.size.h,
+                            scaleRotateCenter: [UI.components.busySpinner.size.w / 2, UI.components.busySpinner.size.h / 2]
+                        }
+                    },
+                    {
+                        id: "innerPoster",
+                        nodeType: "Poster",
+                        fields: {
+                            uri: UI.components.busySpinner.url,
+                            visible: true,
+                            opacity: 0.5,
+                            width: UI.components.busySpinner.size.w - 20,
+                            height: UI.components.busySpinner.size.h - 20,
+                            translation: [10, 10],
+                            scaleRotateCenter: [(UI.components.busySpinner.size.w - 20) / 2, (UI.components.busySpinner.size.h - 20) / 2],
+                            scale: m.getInnerScale()
+                        }
+                    }
+                ]
+            }
+        end function
+
+        sub startAnimation()
+            m.animator("animate-spinner-rotation").timeline({
+                duration: 0.5,
+                easeFunction: "inQuad",
+                repeat: true
+            }).add({
+                target: m.children.outerPoster,
+                rotation: 6.283185307179586
+            }).add({
+                target: m.children.innerPoster,
+                rotation: -6.283185307179586
+            }).play()
+        end sub
+
+        function getInnerScale() as Object
+            scale = (UI.components.busySpinner.size.w - 20) / UI.components.busySpinner.size.w
+            return [scale, scale]
+        end function
+
+    end class
+
+end namespace

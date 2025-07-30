@@ -1,0 +1,93 @@
+
+namespace ViewModels.Carousel
+
+    class PromoTripleCard extends ViewModels.Carousel.DefaultCard
+
+        props = {
+            width: UI.components.carousel.row.default.promoTripleCard.width,
+            height: UI.components.carousel.row.default.promoTripleCard.height,
+            showFocusIndicator: true
+        }
+
+        override sub onFocusChangedHook(isFocused)
+
+            ' Delegate focus to CTA promo button
+            m.children["learnMoreButton"].plugins.focus.setFocus(isFocused)
+
+        end sub
+
+        override function template() as object
+            template = super.template()
+
+            ' Hide focus on Hero card
+            buttonHeight = 40
+            buttonMargin = 20
+            template.children = [
+                {
+                    id: "learnMoreButton",
+                    viewModel: ViewModels.SimpleButton,
+                    fields: {
+                        translation: [0, UI.components.carousel.row.default.promoTripleCard.height - buttonHeight - buttonMargin]
+                    },
+                    props: {
+                        height: buttonHeight,
+                        autoWidth: true,
+                        paddingX: 20,
+                        autoAlignRightTo: UI.components.carousel.row.default.promoTripleCard.width - buttonMargin,
+                        text: m.props.content.buttonText.split(",")[RND(2) - 1]
+                    }
+
+                }
+                ' {
+
+                '     id: "textChanger",
+                '     nodeType: "Timer",
+                '     fields: {
+                '         duration: 1.62,
+                '         repeat: true
+                '     },
+                '     viewModelState: {
+                '         textPointer: 0,
+                '         textArray: m.props.content.buttonText.split(",")
+                '     },
+                '     observer: {
+                '         fieldId: "fire",
+                '         callback: sub(payload)
+                '             m.viewModelState.textPointer++
+
+                '             ' Get the button label
+                '             buttonLabel = m.getViewModel().getWidget("learnMoreButton/**/buttonLabel")
+                '             ' Modify props.text
+                '             buttonLabel.props.text = m.viewModelState.textArray[Rotor.Utils.getWrappedIndex(m.viewModelState.textPointer, m.viewModelState.textArray.Count())]
+                '             ' Call refresh, which is a kind of render
+                '             buttonLabel.refresh("fields.text")
+                '         end sub
+                '     },
+                '     onMountWidget: sub()
+                '         if m.props.displayState <> Const.Carousel.DisplayState.IS_OUT_OF_VIEWPORT
+                '             m.node.control = "start"
+                '         end if
+                '     end sub
+
+                ' }
+            ]
+            template.dispatcher = ["dialog", m.props.dispatcherId] ' dialog is specific for promo, dispatcherId is inherited from default due to
+            template.focus.onSelected = sub()
+                m.viewModelState.dispatcher.dialog.dispatch({
+                    type: IntentTypes.Dialog.Modal.SHOW_DIALOG,
+                    payload: {
+                        proceedType: Const.Dialog.ProceedType.NONE,
+                        title: "Details",
+                        message: `This feature is currently\nunavailable in the POC project.`
+                    }
+                })
+            end sub
+
+
+            return template
+
+        end function
+
+    end class
+
+end namespace

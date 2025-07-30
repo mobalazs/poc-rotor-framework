@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<component name="HomeContentNode" extends="ContentNode">
+    <interface>
+
+        <field id="contentList" type="nodeArray" />
+
+        <field id="cardCount" type="integer" />
+
+    </interface>
+</component>

@@ -1,0 +1,126 @@
+
+namespace ViewModels.Carousel
+
+    class UpcomingCard extends ViewModels.Carousel.DefaultCard
+
+        props = {
+            width: UI.components.carousel.row.default.card.width,
+            height: UI.components.carousel.row.default.card.height,
+            showFocusIndicator: false
+        }
+
+        override function template() as object
+            defaultCardTemplate = super.template()
+
+            ' Reuse DefaultCard's template to wrap poster.
+
+            upcomingCardTemplate = {
+                nodeType: "Group",
+                fields: {
+                    visible: defaultCardTemplate.fields.visible,
+                    translation: defaultCardTemplate.fields.translation,
+                    opacity: defaultCardTemplate.fields.opacity,
+                    scaleRotateCenter: [m.props.width / 2, m.props.height / 2],
+                    scale: [0.75, 0.75]
+                },
+                dispatcher: defaultCardTemplate.dispatcher,
+                focus: defaultCardTemplate.focus,
+
+                children: [
+                    {
+                        ' Original thumbnail
+                        id: "thumbnail",
+                        nodeType: defaultCardTemplate.nodeType,
+                        fields: {
+                            width: defaultCardTemplate.fields.width,
+                            height: defaultCardTemplate.fields.height,
+                            loadWidth: defaultCardTemplate.fields.width,
+                            loadHeight: defaultCardTemplate.fields.height,
+                            failedBitmapUri: defaultCardTemplate.fields.failedBitmapUri,
+                            uri: defaultCardTemplate.fields.uri
+                        }
+                    }, {
+
+                        id: "upcomingFocusIndicator",
+                        nodeType: "Poster",
+                        fields: {
+                            uri: UI.components.carousel.focusFrameUrl,
+                            opacity: 0,
+                            width: UI.components.carousel.row.default.card.width,
+                            height: UI.components.carousel.row.default.card.height
+                        }
+                    }
+                ]
+            }
+
+            return upcomingCardTemplate
+        end function
+
+        override sub onFocusChangedHook(isFocused)
+
+            ' Delegate fake focus indicator to new focused item immediately without any animation.
+
+            thumbnail = m.getWidget("thumbnail")
+            upcomingFocusIndicator = m.getWidget("upcomingFocusIndicator")
+            upcomingFocusIndicator.node.setFields({
+                scaleRotateCenter: thumbnail.node.scaleRotateCenter,
+                width: (thumbnail.node.scale[0] * (thumbnail.node.width) + 4),
+                height: (thumbnail.node.scale[0] * (thumbnail.node.height) + 4),
+                translation: [
+                    thumbnail.node.translation[0] * (thumbnail.node.scale[0] - 2),
+                    thumbnail.node.translation[1] * (thumbnail.node.scale[1] - 2)
+                ],
+                opacity: isFocused ? 1 : 0
+            })
+
+        end sub
+
+        override sub cardAnimation(shouldAnimate as boolean)
+            m.node.visible = true
+
+            ' Set Opacity
+
+            isInMiddleSection = m.props.displayState = Const.Carousel.DisplayState.IS_IN_MIDDLE_SECTION
+            isOutOfViewPort = m.props.displayState = Const.Carousel.DisplayState.IS_OUT_OF_VIEWPORT
+            isInBeforeSection = m.props.displayState = Const.Carousel.DisplayState.IS_IN_BEFORE_SECTION
+
+            isExpanded = m.props.isExpanded
+
+            if (isInBeforeSection and m.props.isCarouselOnBase) or isOutOfViewPort
+                opacity = 0
+            else
+                opacity = isInMiddleSection ? 1 : UI.components.carousel.fadeOutOpacity
+            end if
+
+            ' Animate if:
+            if shouldAnimate
+                ' Opacity animation
+                duration = UI.components.carousel.row.default.card.width / UI.components.carousel.animSpeed / 1000
+                alreadyExpanded = isExpanded and m.lastExpanded
+
+                m.animator("animate-card-offset-and-opacity").create({
+                    target: m,
+                    duration: alreadyExpanded ? duration * 2 : duration,
+                    delay: alreadyExpanded ? 0 : duration * 2.5 ,
+                    easeFunction: isExpanded ? "linear" : "outQuartic",
+                    opacity: opacity,
+                    x: m.props.offset,
+                    scale: [m.props.scale, m.props.scale],
+                    optional: true
+                }).play()
+            else
+                ' Set opacity immediately
+                m.node.translation = [m.props.offset, 0]
+                m.node.scale = [m.props.scale, m.props.scale]
+                m.node.opacity = opacity
+            end if
+
+            m.lastExpanded = isExpanded
+
+        end sub
+
+
+    end class
+
+end namespace
+

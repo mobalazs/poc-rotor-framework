@@ -1,0 +1,23 @@
+
+class DialogReducer extends Reducer
+
+    override function reducer(state as Object, intent as Intent)
+
+        if intent.type = IntentTypes.Dialog.Modal.SHOW_DIALOG
+
+            state.dialogType = intent.payload?.dialogType ?? Const.Dialog.DialogType.GENERAL
+            state.proceedType = intent.payload?.proceedType ?? Const.Dialog.ProceedType.NONE
+
+            if state.proceedType = Const.Dialog.ProceedType.EXIT
+            else
+                state.title = intent.payload.title
+                state.message = intent.payload.message
+            end if
+
+        end if
+
+        return state
+
+    end function
+
+end class

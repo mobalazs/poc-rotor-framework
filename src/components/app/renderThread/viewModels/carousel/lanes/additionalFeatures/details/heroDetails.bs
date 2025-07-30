@@ -1,0 +1,230 @@
+
+namespace ViewModels.Carousel
+
+    '''''''''
+    ' HeroDetails View Model: Used by Default Carousel or any of inheritances
+    '
+    ' props:
+    '   @isExpanded {boolean}
+    '   @content {contentNode}
+    '
+    ' dependencies: parentViewModel must be instance of Carousel
+    '
+    '''''''''
+    class HeroDetails extends ViewModels.Carousel.DefaultDetails
+
+        override function template() as object
+            return {
+                id: "details",
+                nodeType: "LayoutGroup",
+                fields: {
+                    opacity: 1,
+                    itemSpacings: [15, 30]
+                },
+                focus: {
+                    group: {
+                        enableSpatialNavigation: true,
+                        defaultFocusId: "playButton"
+                    }
+                },
+                children: [
+                    {
+                        id: "title",
+                        nodeType: "Label",
+                        fontStyle: UI.fontStyles.H2_aa,
+                        fields: {
+                            opacity: 0,
+                            color: UI.colors.primary_2,
+                            text: function() return m.props.content?.title ?? "": end function
+                        }
+                    },
+                    {
+                        id: "subTitle",
+                        nodeType: "Label",
+                        fontStyle: UI.fontStyles.H4_aa,
+                        fields: {
+                            opacity: 0,
+                            color: UI.colors.secondary_2,
+                            text: function() return m.props.content?.subTitle ?? "" : end function
+                        }
+                    },
+                    {
+                        id: "description",
+                        nodeType: "Label",
+                        fontStyle: UI.fontStyles.default_aa,
+                        fields: {
+                            opacity: 0,
+                            color: UI.colors.secondary_2,
+                            maxLines: 6,
+                            wrap: true,
+                            width: 600,
+                            text: function() return m.props.content?.description ?? "" : end function
+                        }
+                    },
+                    {
+                        id: "buttonContainer",
+                        nodeType: "LayoutGroup",
+                        fields: {
+                            opacity: 0,
+                            layoutDirection: "horiz",
+                            itemSpacings: [10, 30]
+                        },
+                        children: [
+                            {
+                                id: "playButton",
+                                viewModel: ViewModels.SimpleButton,
+                                props: {
+                                    text: "Play",
+                                    width: 200
+                                },
+                                dispatcher: "dialog",
+                                focus: {
+                                    onSelected: sub()
+                                        m.viewModelState.dispatcher.dialog.dispatch({
+                                            type: IntentTypes.Dialog.Modal.SHOW_DIALOG,
+                                            payload: {
+                                                title: "Playback",
+                                                message: `This feature is currently\nunavailable in the POC project.`
+                                            }
+                                        })
+                                    end sub
+                                }
+                            },
+                            {
+                                id: "detailsButton",
+                                viewModel: ViewModels.SimpleButton,
+                                props: {
+                                    text: "Details",
+                                    autoWidth: true
+                                },
+                                dispatcher: "dialog",
+                                focus: {
+                                    onSelected: sub()
+                                        m.viewModelState.dispatcher.dialog.dispatch({
+                                            type: IntentTypes.Dialog.Modal.SHOW_DIALOG,
+                                            payload: {
+                                                proceedType: Const.Dialog.ProceedType.NONE,
+                                                title: "Details",
+                                                message: `This feature is currently\nunavailable in the POC project.`
+                                            }
+                                        })
+                                    end sub
+                                }
+                            }
+                        ]
+                    }
+
+                ]
+            }
+        end function
+
+        override sub onUpdateView()
+            m.children.title.refresh("fields.text")
+            m.children.subTitle.refresh("fields.text")
+            m.children.description.refresh("fields.text")
+        end sub
+
+        override sub show()
+            if m.viewModelState.isShown = true then return
+            super.show()
+        end sub
+
+        override sub hide()
+            if m.viewModelState.isShown = false then return
+            super.hide()
+        end sub
+
+        override sub showNextDetails()
+            ' m.animateContentChange()
+        end sub
+
+        override sub animateVisibility(opacity, duration, delay)
+
+            if opacity = 0
+                m.animator(`animate-details-show-${m.id}`).create({
+                    target: m,
+                    duration: m.node.opacity * m.props.duration / 2,
+                    easeFunction: "linear",
+                    opacity: 0,
+                    delay: m.props.duration,
+                    optional: true
+                }).play()
+            else
+                m.children.title.node.opacity = 0
+                m.children.title.node.scale = [1.7, 1.7]
+                m.children.subTitle.node.opacity = 0
+                m.children.subTitle.node.scale = [1.7, 1.7]
+                m.children.description.node.opacity = 0
+                m.children.description.node.scale = [1.7, 1.7]
+                m.children.buttonContainer.node.opacity = 0
+                m.node.opacity = 1
+                m.animator(`animate-details-show-${m.id}`).timeline({
+                    easeFunction: "linear",
+                    optional: true,
+                    delay: delay
+                }).add({
+                    targets: [m.children.title, m.children.subTitle, m.children.description],
+                    opacity: opacity,
+                    duration: 0.2,
+                    scale: [1, 1],
+                    delay: function(t, i, l)
+                        return i * 0.2
+                    end function
+                }).add({
+                    targets: m.children.buttonContainer,
+                    opacity: opacity,
+                    duration: 0.2,
+                    delay: 0.8
+                }).play()
+            end if
+        end sub
+
+        override sub animateContentChange()
+            m.animator(`animate-details-show-${m.id}`).create({
+                target: m,
+                duration: m.node.opacity * m.props.duration / 2,
+                easeFunction: "linear",
+                opacity: 0,
+                delay: m.props.duration,
+                optional: true
+            }).play().observeState({
+                callback: sub(state)
+                    if state = "stopped"
+
+                        m.onUpdateView()
+
+                        m.children.title.node.opacity = 0
+                        m.children.title.node.scale = [1.7, 1.7]
+                        m.children.subTitle.node.opacity = 0
+                        m.children.subTitle.node.scale = [1.7, 1.7]
+                        m.children.description.node.opacity = 0
+                        m.children.description.node.scale = [1.7, 1.7]
+                        m.children.buttonContainer.node.opacity = 0
+                        m.node.opacity = 1
+
+                        m.animator(`animate-details-show-${m.id}`).timeline({
+                            easeFunction: "linear",
+                            optional: true
+                        }).add({
+                            targets: [m.children.title, m.children.subTitle, m.children.description],
+                            opacity: 1,
+                            duration: 0.2,
+                            scale: [1, 1],
+                            delay: function(t, i, l)
+                                return i * 0.2
+                            end function
+                        }).add({
+                            targets: m.children.buttonContainer,
+                            opacity: 1,
+                            duration: 0.2,
+                            delay: 0.8
+                        }).play()
+
+                    end if
+                end sub
+            })
+        end sub
+
+    end class
+
+end namespace

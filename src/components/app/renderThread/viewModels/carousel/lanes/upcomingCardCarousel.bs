@@ -1,0 +1,137 @@
+' Card view models
+import "../cards/upcomingCard.bs"
+import "additionalFeatures/details/upcomingDetails.bs"
+
+namespace ViewModels.Carousel
+
+    '''''''''
+    ' UpcomingCardCarousel View Model: Instance of Carousel viewModel; Render cards horizontally
+    '
+    ' props:
+    '   # All carousel props. For more details please check ViewModels.Carousel class
+    '
+    '''''''''
+    class UpcomingCardCarousel extends ViewModels.Carousel.DefaultCardCarousel
+
+        isExpanded = false
+
+        props = {
+            config: {
+                axis: Const.Carousel.Orientation.HORIZONTAL_AXIS,
+                beforeSection: 0,
+                middleSection: UI.designResolution.w - UI.safeAreaOffsets.x - 70,
+                afterSection: UI.safeAreaOffsets.x,
+                spacing: 0,
+
+                animSpeed: UI.components.carousel.animSpeed / 2,
+                animSpeedLongPress: UI.components.carousel.animSpeed / 2,
+
+                enableWrap: true,
+                floatingFocusLimit: 0,
+                enableMiddleSectionCentered: false,
+                initialRenderUpdateMode: Const.Carousel.RenderUpdateMode.VIEWPORT,
+                animationMode: Const.Carousel.LongPressAnimationMode.SEQUENTIAL,
+
+                initialRenderUpdateMode: Const.Carousel.RenderUpdateMode.VIEWPORT_COLLAPSED,
+
+                idPrefix: "card",
+                display: {
+                    upcoming: {
+                        viewModel: ViewModels.Carousel.UpcomingCard,
+                        size: UI.components.carousel.row.default.card.width,
+                        expandSizeForward: 610
+                    }
+                }
+            }
+        }
+
+        ' Carousel template
+        override function template() as object
+            template = super.template()
+
+            template.children[0] = {
+                id: "details",
+                viewModel: ViewModels.Carousel.UpcomingDetails
+            }
+
+            ' Handle collapse
+            template.focus.group.up = function()
+                if m.getParentViewModel().getFocusedIndex() > 0
+                    m.toggleExpanded(false)
+                    m.children.details.hide()
+                end if
+                return false
+            end function
+
+            ' Handle collapse
+            template.focus.group.down = function()
+                if m.getParentViewModel().carousel.isWrapped = true or m.getParentViewModel().getFocusedIndex() < m.getParentViewModel().carousel.contentCount - 1
+                    m.toggleExpanded(false)
+                    m.children.details.hide()
+                end if
+                return false
+            end function
+
+            return template
+        end function
+
+        sub toggleExpanded(isFocused)
+            if m.isExpanded = isFocused then return
+
+            m.isExpanded = isFocused
+            templates = m.templateProvider(m.isExpanded ? Const.Carousel.RenderUpdateMode.VIEWPORT : Const.Carousel.RenderUpdateMode.VIEWPORT_COLLAPSED, m.props.stepIndex)
+            ' Note: beforeTemplatesRenderedHook will be called
+            m.renderTemplates(templates)
+
+        end sub
+
+        ' Set scale on cards and update details because these features are not a default feature of Card Carousel
+        override function beforeTemplatesRenderedHook(templates, stepIndex, renderUpdateMode, slideAction) as object
+
+            '
+            isExpanded = (renderUpdateMode = Const.Carousel.RenderUpdateMode.VIEWPORT)
+
+            for each template in templates
+
+                ' Card animation is different for expanded and collapsed
+                template.props.isExpanded = isExpanded
+
+                ' Set scale on cards
+                afterFirst = template.props.renderIndex > stepIndex 'and template.props.displayState <> Const.Carousel.DisplayState.IS_OUT_OF_VIEWPORT
+                if isExpanded
+                    if afterFirst
+                        template.props.scale = 0.75
+                    else
+                        template.props.scale = 1
+                    end if
+                else
+                    template.props.scale = 0.75
+                end if
+
+            end for
+
+            return templates
+        end function
+
+        override sub onSlotContainerReturnCopyFieldsHook(template, fromWidget, toWidget)
+
+            ' SET SCALE because it is not a default feature of Card Carousel
+
+            fromUpcomingFocusIndicator = toWidget.children.upcomingFocusIndicator
+            toUpcomingFocusIndicator = toWidget.children.upcomingFocusIndicator
+
+            toWidget.node.scale = fromWidget.node.scale
+
+            toUpcomingFocusIndicator.node.opacity = fromUpcomingFocusIndicator.node.opacity
+
+        end sub
+
+
+        override sub onFocusHook()
+            super.onFocusHook()
+            m.toggleExpanded(true)
+        end sub
+
+    end class
+
+end namespace

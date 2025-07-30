@@ -1,0 +1,196 @@
+import "pageMenu/pageMenu.bs"
+
+import "../pages/samplePage.bs"
+import "../pages/basePage.bs"
+import "../pages/moviesPage.bs"
+import "../pages/seriesPage.bs"
+
+import "../pages/home/homePage.bs"
+import "../pages/settings/languagePicker/languagePicker.bs"
+import "../pages/settings/languagePicker/languagePickerItem.bs"
+import "../pages/settings/settingsPage.bs"
+
+namespace ViewModels
+
+    class MainSidebar extends ViewModel
+
+        override function template() as object
+
+            return {
+                id: "mainSidebar",
+                nodeType: "Group",
+                fields: {
+                    translation: [UI.safeAreaOffsets.x, UI.safeAreaOffsets.y]
+                },
+                focus: {
+                    group: {
+                        onFocusChanged: sub(isFocused)
+                            m.getViewModel().layoutMenuAnimation(isFocused)
+                        end sub,
+                        onFocus: sub()
+                            m.plugins.focus.enableFocusNavigation(true)
+                        end sub
+                    }
+                },
+                children: [
+                    {
+                        id: "sidebarFocusOverlay",
+                        nodeType: "Rectangle",
+                        fields: {
+                            inheritParentTransform: false,
+                            width: UI.designResolution.w,
+                            height: UI.designResolution.h,
+                            color: UI.colors.black,
+                            opacity: 0
+                        }
+                    },{
+                        id: "innerWrapper",
+                        nodeType: "Group",
+                        children: [
+                            {
+                                nodeType: "Poster",
+                                zIndex: 0,
+                                fields: {
+                                    uri: UI.components.layout.menuBackground.url,
+                                    width: UI.components.layout.menuBackground.size.width,
+                                    height: UI.components.layout.menuBackground.size.height,
+                                    blendColor: UI.components.layout.menuBackground.color,
+                                    translation: UI.components.layout.menuBackground.translation
+                                }
+                            }, {
+                                nodeType: "Rectangle",
+                                fields: {
+                                    height: UI.components.layout.menuSeparatorLine.height,
+                                    width: UI.components.layout.menuSeparatorLine.width,
+                                    color: UI.components.layout.menuSeparatorLine.color,
+                                    translation: UI.components.layout.menuSeparatorLine.translation
+                                }
+                            }, {
+                                id: "appTitle",
+                                nodeType: "Label",
+                                fontStyle: UI.components.layout.appTitle.fontStyle_aa,
+                                fields: {
+                                    text: "@l10n.appTitle",
+                                    vertAlign: "right",
+                                    color: UI.components.layout.appTitle.color
+                                }
+                            }, {
+                                id: "pageMenu",
+                                viewModel: ViewModels.PageMenu,
+                                props: {
+                                    down: "additionalMenuItems" ' Can point to a group, but not directly to a focusItem widget.
+                                }
+                            }, {
+                                id: "additionalMenuItems",
+                                focus: {
+                                    group: {
+                                        defaultFocusId: "exitMenuItem",
+                                        up: "pageMenu"
+                                    }
+                                },
+                                children: [
+                                    {
+                                        id: "exitMenuItem",
+                                        viewModel: ViewModels.PageMenuItemExit,
+                                        props: {
+                                            optionKey: "ExitApp",
+                                            isActive: false,
+                                            width: UI.components.pageMenu.labelWidth + UI.components.pageMenu.icon.size.width + UI.components.pageMenu.marginRight,
+                                            translation: [0, 900]
+                                        }
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        end function
+
+        override sub onMountView()
+            m.sidebarFocusOverlay = m.getWidget("sidebarFocusOverlay")
+            m.innerWrapper = m.getWidget("innerWrapper")
+            m.appTitleWidget = m.getWidget("appTitle")
+            m.viewContainer = m.getWidget("./**/viewContainer")
+
+            pageMenuItemLabels = m.findWidgets("pageMenu/**/itemLabel")
+            pageMenuItemLabels.sortBy("animationIndex")
+            exitMenuItemLabel = m.getWidget("exitMenuItem/**/itemLabel")
+            m.menuLabels = []
+            m.menuLabels.append(pageMenuItemLabels)
+            m.menuLabels.push(exitMenuItemLabel)
+
+            m.setSidebarUiParams(false)
+
+        end sub
+
+        override sub onDestroyView()
+            m.appTitleWidget = invalid
+            m.viewContainer = invalid
+            m.menuLabels = invalid
+        end sub
+
+        sub layoutMenuAnimation(isMenuFocused as boolean)
+            sidebarUiParams = m.getSidebarUiParams(isMenuFocused)
+
+            m.animator("focusPageMenuAnimation").timeline({
+                duration: 0.2
+            }).add({
+                duration: 0.25,
+                target: m.appTitleWidget,
+                translationTo: sidebarUiParams.appTitleWidget_translation,
+                opacity: sidebarUiParams.menuLabels_opacity
+            }).add({
+                target: m.viewContainer,
+                translationTo: sidebarUiParams.viewContainer_translation
+            }).add({
+                targets: m.innerWrapper,
+                translationTo: sidebarUiParams.innerWrapper_translation
+            }).add({
+                targets: m.sidebarFocusOverlay,
+                opacity: sidebarUiParams.sidebarFocusOverlay_opacity
+            }).add({
+                duration: 0.3,
+                targets: m.menuLabels,
+                x: sidebarUiParams.menuLabels_translationX,
+                opacity: sidebarUiParams.menuLabels_opacity,
+                delay: function(t, i, l)
+                    return i * 0.05
+                end function
+            }).play()
+        end sub
+
+        sub setSidebarUiParams(isFocused as boolean)
+            sidebarUiParams = m.getSidebarUiParams(isFocused)
+
+            m.viewContainer.node.translation = sidebarUiParams.viewContainer_translation
+            m.appTitleWidget.node.translation = sidebarUiParams.appTitleWidget_translation
+            m.innerWrapper.node.translation = sidebarUiParams.innerWrapper_translation
+            m.sidebarFocusOverlay.node.opacity = sidebarUiParams.sidebarFocusOverlay_opacity
+
+            for each menuLabel in m.menuLabels
+                menuLabelTranslationY = menuLabel.node.translation[1]
+                menuLabel.node.translation = [sidebarUiParams.menuLabels_translationX, menuLabelTranslationY]
+                menuLabel.node.opacity = sidebarUiParams.menuLabels_opacity
+            end for
+
+        end sub
+
+        function getSidebarUiParams(isFocused as boolean)
+            ' NOTE: When sidebar focused then viewContainer is not focused
+
+            appTitleWidgetTranslationX = (UI.components.layout.menuSeparatorLine.translation)[0] + UI.components.pageMenu.sideBarPadding
+
+            return {
+                viewContainer_translation: isFocused ? [(UI.components.layout.menuSeparatorLine.translation)[0], UI.safeAreaOffsets.y + (UI.components.layout.appTitle.fontStyle_aa).size + UI.components.pageMenu.sideBarPadding] : [UI.safeAreaOffsets.x + UI.components.pageMenu.sideBarPadding * 2 + UI.components.pageMenu.icon.size.width, UI.safeAreaOffsets.y],
+                appTitleWidget_translation: isFocused ? [appTitleWidgetTranslationX, 0] : [appTitleWidgetTranslationX, -150],
+                innerWrapper_translation: isFocused ? [- (UI.safeAreaOffsets.x + UI.components.pageMenu.sideBarPadding), 0] : [- (UI.components.pageMenu.labelWidth + UI.components.pageMenu.marginRight), 0],
+                menuLabels_translationX: isFocused ? 0 : -50,
+                menuLabels_opacity: isFocused ? 1 : 0,
+                sidebarFocusOverlay_opacity: isFocused ? 0.5 : 0
+            }
+        end function
+
+    end class
+
+end namespace

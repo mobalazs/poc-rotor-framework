@@ -1,0 +1,202 @@
+import "dialogModel.bs"
+import "dialogReducer.bs"
+import "dialogUpdateTemplates.bs"
+import "constants.bs"
+import "intentTypes.bs"
+
+namespace ViewModels
+
+    class Dialog extends ViewModel
+
+        override sub onCreateView()
+            ' Dialog logic dispatcher
+            m.dialogDispatcher = m.createDispatcher("dialog", new DialogModel(), new DialogReducer())
+            m.dialogDispatcher.addListener({
+                callback: m.onUpdateView
+            })
+        end sub
+
+        override sub onMountView()
+        end sub
+
+        override sub onDestroyView()
+            m.lastFocusedWidget = invalid
+        end sub
+
+        override sub onUpdateView()
+
+            ' dismiss dialog if it is presented
+            prevAnim = m.animator("hide-dialog")
+            if prevAnim?.isRunning() = true then prevAnim.stop()
+
+            ' remove and save original focus
+            m.lastFocusedWidget = m.plugins.focus.getFocusedWidget()
+            m.lastFocusedWidget.plugins.focus.setFocus(false)
+
+            ' update (and create buttons) dialog content
+            updateConfig = getDialogUpdateTemplate(m.props)
+
+            m.getWidget("dialogContent").render(updateConfig)
+
+            m.node.visible = true
+
+            m.animator("show-dialog").timeline({
+                duration: UI.components.dialogs.defaultDialog.animationDuration,
+                easeFunction: "inOutCubic"
+            }).add({
+                target: m.getWidget("dialogOverlay"),
+                opacity: 0.65
+            }).add({
+                target: m.getWidget("dialogBlock"),
+                scale: [1, 1],
+                opacity: 1
+            }).play()
+
+        end sub
+
+        sub dismiss()
+
+            m.lastFocusedWidget.plugins.focus.setFocus()
+
+            m.animator("hide-dialog").timeline({
+                duration: UI.components.dialogs.defaultDialog.animationDuration,
+                easeFunction: "inOutCubic"
+            }).add({
+                target: m.getWidget("dialogOverlay"),
+                opacity: 0
+            }).add({
+                target: m.getWidget("dialogBlock"),
+                scale: [0.8, 0.8],
+                opacity: 0
+            }).play().observeState({
+                callback: sub(state)
+                    if state = "stopped"
+                        m.node.visible = false
+                        m.erase("buttonContainer/*")
+                    end if
+                end sub,
+                until: function(state)
+                    return state = "stopped"
+                end function
+            })
+
+        end sub
+
+
+        override function template() as object
+
+            width = UI.designResolution.w / 2
+            height = UI.designResolution.h / 2
+            framePadding = UI.components.dialogs.defaultDialog.framePadding
+            innerWidth = width - framePadding * 2
+            innerHeight = height - framePadding * 2
+
+            return {
+                nodeType: "Group",
+                fields: {
+                    visible: false,
+                    inheritParentTransform: false ' full screen
+                },
+                focus: {
+                    group: {
+                        defaultFocusId: "dismissButton",
+
+                        back: function()
+                            m.dismiss()
+                            return ""
+                        end function
+                    }
+                },
+                children: [
+                    {
+                        id: "dialogOverlay",
+                        nodeType: "Rectangle",
+                        fields: {
+                            color: UI.components.dialogs.defaultDialog.overlayColor,
+                            opacity: 0,
+                            width: UI.designResolution.w,
+                            height: UI.designResolution.h
+                        }
+                    },
+                    {
+                        id: "dialogBlock",
+                        nodeType: "Rectangle",
+                        fields: {
+                            opacity: 0,
+                            scale: [0.8, 0.8],
+                            color: UI.components.dialogs.defaultDialog.baseColor,
+                            width: width,
+                            height: height,
+                            translation: [width / 2, height / 2],
+                            scaleRotateCenter: [width / 2, width / 2]
+                        },
+                        children: [
+                            {
+                                id: "dialogBackgroundGradient",
+                                nodeType: "Poster",
+                                fields: {
+                                    uri: UI.components.dialogs.defaultDialog.posterUrl,
+                                    blendColor: UI.components.dialogs.defaultDialog.blendColor,
+                                    width: width,
+                                    height: height,
+                                    opacity: 0.4
+                                }
+                            },
+                            {
+                                id: "dialogContent",
+                                nodeType: "LayoutGroup",
+                                fields: {
+                                    translation: [innerWidth / 2 + framePadding, innerHeight / 2],
+                                    itemSpacings: [50, 100],
+                                    horizAlignment: "center",
+                                    vertAlignment: "center"
+                                },
+                                children: [
+                                    {
+                                        id: "title",
+                                        nodeType: "Label",
+                                        fontStyle: UI.components.dialogs.defaultDialog.titleTextFontStyle_aa,
+                                        fields: {
+                                            color: UI.components.dialogs.defaultDialog.titleTextColor,
+                                            maxLines: 2,
+                                            wrap: true,
+                                            width: innerWidth,
+                                            horizAlign: "center"
+                                        }
+                                    },
+                                    {
+                                        id: "message",
+                                        nodeType: "Label",
+                                        fontStyle: UI.components.dialogs.defaultDialog.bodyTextFontStyle_aa,
+                                        fields: {
+                                            color: UI.components.dialogs.defaultDialog.bodyTextColor,
+                                            maxLines: 5,
+                                            wrap: true,
+                                            width: innerWidth,
+                                            horizAlign: "center"
+                                        }
+                                    },
+                                    {
+                                        id: "buttonContainer",
+                                        nodeType: "LayoutGroup",
+                                        fields: {
+                                            translation: [innerWidth / 2 + framePadding, innerHeight / 2 + framePadding],
+                                            itemSpacings: [5],
+                                            layoutDirection: "horiz",
+                                            horizAlignment: "center"
+                                        },
+                                        children: [
+                                            ' place of buttons
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        end function
+
+    end class
+
+end namespace

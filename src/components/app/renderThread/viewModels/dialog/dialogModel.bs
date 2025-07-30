@@ -1,0 +1,11 @@
+class DialogModel extends Model
+
+    state = {
+        dialogType: Const.Dialog.DialogType.GENERAL,
+        title: "Dialog",
+        message: "",
+        proceedType: Const.Dialog.ProceedType.NONE
+    }
+
+end class
+

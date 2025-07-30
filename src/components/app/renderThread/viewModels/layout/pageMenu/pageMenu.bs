@@ -1,0 +1,123 @@
+import "pageMenuItem.bs"
+import "pageMenuItemExit.bs"
+import "constants.bs"
+
+namespace ViewModels
+
+    class PageMenu extends ViewModel
+
+        override function template() as object
+            return {
+                nodeType: "Group",
+
+                focus: {
+                    group: {
+                        defaultFocusId: `option-${m.props.activePageKey}`,
+                        enableSpatialEnter: false,
+                        down: m.props.down
+                    }
+                },
+                children: m.generateOptions(m.props)
+            }
+        end function
+
+        override sub onUpdateView()
+            for each childId in m.children
+                isActive = m.props.activePageKey = m.children[childId].props.optionKey
+                isChanged = m.children[childId].isActive <> isActive
+                if isChanged
+                    m.children[childId].render({
+                        props: {
+                            isActive: isActive
+                        }
+                    })
+                end if
+            end for
+        end sub
+
+        override sub onCreateView()
+
+            m.appStoreDispatcher = m.getDispatcher("appStore")
+
+            ' LISTENER (Props will be set by mapStateToProps before callback fire)
+            m.appStoreDispatcher.addListener({
+                shouldUpdate: function(props, newState) as object
+                    return props.activePageKey <> newState.activePageKey
+                end function,
+                mapStateToProps: sub(props, state)
+                    props.activePageKey = state.activePageKey
+                end sub,
+                callback: "onUpdateView" ' as default (and note that this is an inherited method from OptionList)
+            })
+
+            ' SET INITIAL PROPS
+            m.appStoreDispatcher.getState(sub(props, state)
+                props.append({
+                    activePageKey: state.activePageKey,
+                    pageSettings: state.pageSettings,
+                    enableAutoSelectOnFocus: false
+                })
+            end sub)
+
+        end sub
+
+
+
+        override sub onMountView()
+            m.props.pageKeys = []
+            for each item in m.props.pageSettings
+                m.props.pageKeys.push(item.pageKey)
+            end for
+            ' Trigger alignment update (Once we know the number of menu items)
+            m.render({
+                fields: {
+                    translation: function()
+                        height = m.props.pageKeys.Count() * (UI.components.pageMenu.labelHeight + UI.components.pageMenu.marginBottom)
+                        yOffset = (UI.components.layout.menuSeparatorLine.height - height) / 2 + UI.safeAreaOffsets.y
+                        return [0, yOffset]
+                    end function
+                }
+            })
+        end sub
+
+        override sub onDestroyView()
+            m.appStoreDispatcher.destroy()
+            m.appStoreDispatcher = invalid
+        end sub
+
+        function generateOptions(props as object)
+
+            if props.pageSettings = invalid or props.pageSettings.Count() = 0 then return {}
+
+            optionsTemplate = []
+            optionCount = props.pageSettings.Count()
+
+            for optionIndex = 0 to optionCount - 1
+
+
+                optionKey = props.pageSettings[optionIndex].pageKey ' This is the point where optionKey turn into optionKey
+                optionId = "option-" + optionKey
+
+                isActive = optionKey = props.activePageKey
+
+                optionsTemplate.push({
+                    id: optionId, ' required property
+                    viewModel: ViewModels.PageMenuItem,
+                    props: {
+                        optionKey: optionKey,
+                        optionIndex: optionIndex,
+                        optionCount: optionCount,
+
+                        enableAutoSelectOnFocus: props.enableAutoSelectOnFocus,
+                        isActive: isActive,
+                        activePageKey: props.activePageKey
+                    }
+                })
+            end for
+
+            return optionsTemplate
+        end function
+
+    end class
+
+end namespace

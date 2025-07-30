@@ -1,0 +1,26 @@
+{
+    "rootDir": "src",
+    "stagingDir": "dist",
+
+    "files": [
+        "source/**/*",
+        "components/**/*",
+        "!components/debug", // debug components
+        "manifest",
+        "assets/**/*",
+        "!assets/mockups", // mockup data
+        "!**/*.spec.bs" // rooibos unit tests
+    ],
+
+    "autoImportComponentScript": true,
+
+    "diagnosticFilters": [
+        {
+            "src": "**/roku_modules/**/*.*"
+            },{
+            "src": "**/*.spec.bs"
+            },{
+            "src": "**/debug/rale/**/*.*"
+        }
+    ]
+}

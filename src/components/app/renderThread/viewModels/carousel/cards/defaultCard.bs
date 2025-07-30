@@ -1,0 +1,177 @@
+namespace ViewModels.Carousel
+
+    ''''''''''
+    ' props (defaults):
+    '   @width               {integer}  Poster width in px
+    '   @height              {integer}  Poster height in px
+    '   @showFocusIndicator  {boolean}  Draw native focus ring when TRUE
+    '   ...and runtime-injected keys such as:
+    '       content        – object with .thumbnailUrl, .displayType, .isRecentlyAdded
+    '       offset         – x translation (float)
+    '       displayState   – Const.Carousel.DisplayState enum
+    '       dispatcherId   – string key for global dispatcher table
+    ''''''''''
+    class DefaultCard extends ViewModel
+
+        '--------------------------------------------------------------
+        ' public prop defaults
+        '--------------------------------------------------------------
+        props = {
+            width:  UI.components.carousel.row.default.card.width,
+            height: UI.components.carousel.row.default.card.height,
+            showFocusIndicator: true
+        }
+
+        ''''''''''
+        ' template:
+        ' Build Poster node; if content.isRecentlyAdded then inject badge.
+        '
+        ' @return {object}
+        ''''''''''
+        override function template() as object
+            template = {
+                nodeType: "Poster",
+                fields: {
+                    visible: false,
+                    opacity: m.props.displayState = Const.Carousel.DisplayState.IS_IN_MIDDLE_SECTION ? 1 : UI.components.carousel.fadeOutOpacity,
+                    translation: [m.props.offset, 0],
+                    width: m.props.width,
+                    height: m.props.height,
+                    loadWidth: m.props.width,
+                    loadHeight: m.props.height,
+                    uri: m.props.content?.thumbnailUrl ?? "",
+                    loadingBitmapOpacity: 0.3,
+                    failedBitmapOpacity: 0.6,
+                    loadingBitmapUri: "https://placehold.co/200x300/596959/transparent/jpg",
+                    failedBitmapUri: "https://placehold.co/200x300/000000/F00/jpg?text=Dummy+image\nCDN+issue"
+                },
+                dispatcher: m.props.dispatcherId,
+                focus: {
+                    enableNativeFocus: true,
+                    enableLongPress: true,
+                    enableSpatialNavigation: false,
+                    onFocusChanged: sub(isFocused)
+                        m.onFocusChangedHook(isFocused)
+                    end sub,
+
+                    onFocus: sub()
+                        m.dispatchFocusedCard()
+                        m.onFocusHook()
+                    end sub
+                }
+            }
+
+            if m.props.content.isRecentlyAdded = true
+                badgeW = 160
+                badgeH = 34
+
+                template.children = {
+                    id: "recentBadge",
+                    nodeType: "Rectangle",
+                    fields: {
+                        color: UI.colors.red,
+                        width: badgeW,
+                        height: badgeH,
+                        translation: [(m.props.width - badgeW) / 2, 15]
+                    },
+                    children: {
+                        id: "recentLabel",
+                        nodeType: "Label",
+                        fontStyle: UI.fontStyles.hintText_aa,
+                        fields: {
+                            text: "Recently added",
+                            width: badgeW,
+                            height: badgeH,
+                            horizAlign: "center",
+                            vertAlign: "center",
+                            color: UI.colors.white
+                        }
+                    }
+                }
+            end if
+
+            return template
+        end function
+
+        ''''''''''
+        ' onMountView:
+        ' Lifecycle – called once after render; kick off initial animation.
+        ''''''''''
+        override sub onMountView()
+            super.onMountView()
+            m.cardAnimation(false)
+        end sub
+
+        ''''''''''
+        ' onUpdateView:
+        ' Lifecycle – called on props update; run animation.
+        ''''''''''
+        override sub onUpdateView()
+            m.cardAnimation(true)
+        end sub
+
+        ''''''''''
+        ' cardAnimation:
+        ' Update opacity & translation; animate if requested.
+        '
+        ' @param shouldAnimate {boolean}
+        ''''''''''
+        sub cardAnimation(shouldAnimate as boolean)
+            m.node.visible = true
+
+            ' Determine target opacity
+            isInMiddleSection  = m.props.displayState = Const.Carousel.DisplayState.IS_IN_MIDDLE_SECTION
+            isOutOfViewPort    = m.props.displayState = Const.Carousel.DisplayState.IS_OUT_OF_VIEWPORT
+            isInBeforeSection  = m.props.displayState = Const.Carousel.DisplayState.IS_IN_BEFORE_SECTION
+
+            if (isInBeforeSection and m.props.isCarouselOnBase) or isOutOfViewPort
+                opacity = 0
+            else
+                opacity = isInMiddleSection ? 1 : UI.components.carousel.fadeOutOpacity
+            end if
+
+            ' Skip if nothing changed
+            if m.node.opacity = opacity and m.node.translation[0] = m.props.offset then return
+
+            if shouldAnimate
+                m.animator("animate-card-opacity").create({
+                    target: m,
+                    duration: UI.components.carousel.row.default.card.width / UI.components.carousel.animSpeed * 2 / 1000,
+                    easeFunction: "linear",
+                    opacity: opacity,
+                    x: m.props.offset,
+                    optional: true
+                }).play()
+            else
+                m.node.opacity = opacity
+            end if
+        end sub
+
+        ''''''''''
+        ' dispatchFocusedCard:
+        ' Send focus payload via global dispatcher table.
+        ''''''''''
+        sub dispatchFocusedCard()
+            m.viewModelState.dispatcher[m.props.dispatcherId].dispatch({
+                type: IntentTypes.CAROUSEL.SET_FOCUSED_CARD,
+                payload: {
+                    content: m.props.content,
+                    id: m.id,
+                    cardCarouselId: m.getParentViewModel().id,
+                    rowCarouselId: m.getParentViewModel().getParentViewModel().id,
+                    showFocusIndicator: m.props.showFocusIndicator,
+                    displayType: m.props.content.displayType
+                }
+            })
+        end sub
+
+        ' HOOKS
+        sub onFocusChangedHook(isFocused)
+        end sub
+
+        sub onFocusHook()
+        end sub
+
+    end class
+
+end namespace

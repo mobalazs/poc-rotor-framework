@@ -1,0 +1,15 @@
+
+namespace Const.Dialog
+
+    enum ProceedType
+        NONE = "dialog_proceed_type_none"
+        ERROR = "dialog_proceed_type_error"
+        EXIT = "dialog_proceed_type_exit"
+    end enum
+
+    enum DialogType
+        GENERAL = "dialog_general"
+        ERROR = "dialog_error"
+    end enum
+
+end namespace

@@ -1,0 +1,53 @@
+' Card view models
+import "../cards/fastCard.bs"
+namespace ViewModels.Carousel
+
+    '''''''''
+    ' FastCardCarousel View Model: Instance of Carousel viewModel; Render cards horizontally
+    ' This carousel setup designed to be smoother then others.
+    ' Number of updates are restricted to one, when carousel return to the zero point.
+    ' This strategy keeps long-press animation perfectly smooth until the last card.
+    '
+    ' props:
+    '   # All carousel props. For more details please check ViewModels.Carousel class
+    '
+    '''''''''
+    class FastCardCarousel extends ViewModels.Carousel.DefaultCardCarousel
+
+        override sub onCreateView()
+
+            ' Modify some props
+
+            m.props.config.display.fast = {
+                viewModel: ViewModels.Carousel.FastCard,
+                size: UI.components.carousel.row.default.card.width
+            }
+
+            ' Custom filter for template update (at ROW level)
+            m.props.config.initialRenderUpdateMode = Const.Carousel.RenderUpdateMode.ALL ' prerender all
+            m.props.config.templateUpdateMode = Const.Carousel.TemplateUpdateMode.ONLY_AT_ZERO_INDEX
+
+        end sub
+
+        override function onCreateSlotHook(slot) as object
+            return {
+                contentId: slot.content.contentId,
+                content: slot.content, ' card content
+                dispatcherId: m.props.dispatcherId,
+
+                ' Custom filter for template update (at CARD level)
+
+                enableUpdateTemplate: slot.displayState = Const.Carousel.DisplayState.IS_IN_BEFORE_SECTION or slot.displayState = Const.Carousel.DisplayState.IS_OUT_OF_VIEWPORT
+            }
+        end function
+
+
+        override function beforeTemplatesRenderedHook(templates, stepIndex, renderUpdateMode, slideAction) as object
+            if slideAction = Const.Carousel.SlideAction.MOVE_BACKWARD then return invalid
+            return templates
+        end function
+
+
+    end class
+
+end namespace

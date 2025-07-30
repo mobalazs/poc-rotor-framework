@@ -1,0 +1,77 @@
+
+namespace Reducers
+
+    class HomeContentReducer extends Reducer
+
+        sub logIntent(intent)
+            Rotor.Utils.BasicLogger(`[HOME_CONTENT] dispatcherId: ${m.ownerDispatcherId}, type: ${intent.type}`)
+
+            if Rotor.Utils.isInteger(intent?.payload?.cardCount)
+                Rotor.Utils.BasicLogger(`[HOME_CONTENT] intent.payload.cardCount: ${intent.payload.cardCount}`)
+            end if
+
+        end sub
+
+        override function applyMiddlewares()
+            return [
+                ' Logger middleware
+                function(intent, state) as Intent
+                    m.logIntent(intent)
+                    return intent ' NEXT
+                end function,
+
+                ' Async content reader middleware
+                function(intent, state) as Intent
+
+                    if intent.type = IntentTypes.ContentReader.LOAD_CONTENT
+
+                        m.requestKey = "home:feed"
+                        fetchPool = m.getDispatcher("fetchPool")
+                        ' Home Content Reader is listening to fetchPool
+                        fetchPool.addListener({
+                            allowUpdate: function(state)
+                                return state.requestKey = m.requestKey
+                            end function,
+                            callbackWithState: sub(state)
+                                m.getDispatcher("homeContent").dispatch({
+                                    type: IntentTypes.ContentReader.CONTENT_LOADED,
+                                    payload: {
+                                        response: state.response
+                                    }
+                                })
+                            end sub,
+                            once: true
+                        })
+                        fetchPool.dispatch({
+                            type: IntentTypes.FetchPool.FETCH,
+                            payload: {
+                                endpoint: m.getDispatcher("appStore").getState().endpoints.LookupCI("homeFeed"),
+                                requestKey: m.requestKey,
+                                params: {}
+                            }
+                        })
+
+                        return invalid
+
+                    end if
+
+                    return intent ' NEXT
+                end function,
+
+            ]
+        end function
+
+        override function reducer(state, intent)
+
+            if intent.type = IntentTypes.ContentReader.CONTENT_LOADED
+                state.contentList = intent.payload.response.contentList
+                state.cardCount = intent.payload.response.cardCount
+            end if
+
+            return state
+        end function
+
+
+    end class
+
+end namespace

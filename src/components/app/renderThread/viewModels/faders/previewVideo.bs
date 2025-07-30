@@ -1,0 +1,96 @@
+
+namespace ViewModels.Faders
+
+    class PreviewVideo extends ViewModel
+
+        props = {
+            width: UI.designResolution.w,
+            height: UI.designResolution.h,
+            translation: [UI.designResolution.w, UI.designResolution.h]
+        }
+
+        override function template() as object
+
+            return {
+                fields: {
+                    shouldShowVideo: false
+                },
+                children: [
+                    {
+                        id: "video",
+                        nodeType: "Video",
+                        fields: {
+                            inheritParentTransform: false, ' full screen
+                            enableUI: false,
+                            width: m.props.width,
+                            height: m.props.height,
+                            translation: m.props.translation ?? [0, 0]
+                        },
+                        onDestroyWidget: sub()
+                            m.node.control = "stop"
+                            m.node.content = invalid
+                        end sub,
+                        observer: [
+                            {
+                                fieldId: "state",
+                                callback: sub(payload)
+                                    if payload.state = "playing" 'and m.parent.node.shouldShowVideo = false
+                                        m.node.visible = true
+                                        m.parent.node.shouldShowVideo = true
+                                    else if payload.state = "finished" or payload.state = "error"
+                                        m.parent.node.shouldShowVideo = false
+                                    end if
+                                end sub
+                            }, {
+                                fieldId: "position",
+                                callback: sub(payload)
+                                    if m.viewModelState.shouldShowVideo = true and m.node.duration - payload.position < 1
+                                        m.parent.node.shouldShowVideo = false
+                                    end if
+                                end sub
+                            }
+                        ]
+                    }
+                ]
+            }
+        end function
+
+        override sub setProps(props)
+            m.props.append(props)
+
+            m.children.video.node.setFields({
+                height: props.height,
+                width: props.width,
+                translation: props.translation ?? [0, 0]
+            })
+
+            videoNode = m.children.video.node
+
+            videoContent = createObject("RoSGNode", "ContentNode")
+            videoContent.streamFormat = "mpeg4_10b"
+            videoContent.url = props.content?.previewManifestUrl
+
+            videoNode.content = videoContent
+            videoNode.control = "play"
+
+        end sub
+
+        sub pauseVideo()
+            videoNode = m.children.video.node
+            videoNode.control = "pause"
+        end sub
+
+        sub stopVideo()
+            videoNode = m.children.video.node
+            videoNode.visible = false
+            videoNode.control = "stop"
+        end sub
+
+        sub resumeVideo()
+            videoNode = m.children.video.node
+            videoNode.control = "resume"
+        end sub
+
+    end class
+
+end namespace

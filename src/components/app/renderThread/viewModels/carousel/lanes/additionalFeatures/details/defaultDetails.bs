@@ -1,0 +1,192 @@
+namespace ViewModels.Carousel
+
+    '''''''''
+    ' DefaultDetails
+    ' --------------
+    ' Lightweight overlay that shows a carousel card’s details
+    '
+    ' Responsibilities
+    '   • show() / hide()  – reveal or dismiss with fade/scale animation
+    '   • Cross-fade text when focus moves to a new card
+    '
+    ' Expected props
+    '   @shouldShow {boolean}   Toggle visibility
+    '   @content    {object}    { title, description }  (invalid when empty)
+    '   @duration   {float}     Base animation time in seconds  (optional)
+    '
+    ' Constraints
+    '   – Must be nested in a Carousel-derived ViewModel
+    '   – Receives all data via props (stateless)
+    '
+    ' Version: 0.1.0
+    '
+    '''''''''
+    class DefaultDetails extends ViewModel
+
+        '--------------------------------------------------------------
+        ' public property defaults
+        '--------------------------------------------------------------
+        props = {
+            shouldShow: false,
+            content: invalid,
+            duration: UI.components.carousel.row.default.card.height / UI.components.carousel.animSpeed / 1000
+        }
+
+        '--------------------------------------------------------------
+        ' internal state flags
+        '--------------------------------------------------------------
+        viewModelState = {
+            isShown: false
+        }
+
+        ''''''''''
+        ' template:
+        ' SceneGraph node structure for the details panel.
+        '
+        ' @return {object}
+        ''''''''''
+        override function template() as object
+            return {
+                id: "details",
+                nodeType: "LayoutGroup",
+                fields: {
+                    itemSpacings: [8],
+                    opacity: 0
+                },
+                children: [
+                    {
+                        id: "title",
+                        nodeType: "Label",
+                        fontStyle: UI.fontStyles.H4_aa,
+                        fields: {
+                            width: 510,
+                            color: UI.colors.primary_2,
+                            text: function()
+                                return m.props.content?.title ?? ""
+                            end function
+                        }
+                    }, {
+                        id: "description",
+                        nodeType: "Label",
+                        fontStyle: UI.fontStyles.default_aa,
+                        fields: {
+                            wrap: true,
+                            lineSpacing: 2,
+                            maxLines: 5,
+                            width: 600,
+                            color: UI.colors.secondary,
+                            text: function() return m.props.content?.description ?? "" : end function
+                        }
+                    }
+                ]
+            }
+        end function
+
+        ''''''''''
+        ' setProps:
+        ' Ingest new props and trigger view logic.
+        '
+        ' @param newProps {object}
+        ''''''''''
+        override sub setProps(newProps)
+            if newProps.doesExist("content") then m.props.content = newProps.content
+
+            if m.viewModelState.isShown
+                m.showNextDetails()
+            else if newProps?.shouldShow = true
+                m.show()
+            end if
+        end sub
+
+        ''''''''''
+        ' show:
+        ' Public – reveal panel with fade-in.
+        ''''''''''
+        public sub show()
+            m.viewModelState.isShown = true
+            m.onUpdateView()
+            m.animateVisibility(1, m.props.duration * 2, m.props.duration / 4)
+        end sub
+
+        ''''''''''
+        ' hide:
+        ' Public – fade panel out.
+        ''''''''''
+        public sub hide()
+            m.viewModelState.isShown = false
+            m.animateVisibility(0, m.props.duration / 2, 0)
+        end sub
+
+        ''''''''''
+        ' showNextDetails:
+        ' Private – cross-fade to new content.
+        ''''''''''
+        sub showNextDetails()
+            m.animateContentChange()
+        end sub
+
+        ''''''''''
+        ' animateVisibility:
+        ' Helper to fade panel in/out.
+        '
+        ' @param opacity  {float} 0–1
+        ' @param duration {float} seconds
+        ' @param delay    {float} seconds before start
+        ''''''''''
+        sub animateVisibility(opacity, duration, delay)
+            m.animator(`animate-details-show-${m.id}`).create({
+                target: m,
+                duration: m.props.duration * 2,
+                delay: delay,
+                easeFunction: "linear",
+                opacity: opacity,
+                optional: true
+            }).play()
+        end sub
+
+        ''''''''''
+        ' animateContentChange:
+        ' Two-phase fade when focused card changes.
+        ''''''''''
+        sub animateContentChange()
+            m.animator(`animate-details-show-${m.id}`).create({
+                target: m,
+                duration: m.node.opacity * m.props.duration / 2,
+                easeFunction: "linear",
+                opacity: 0,
+                delay: m.props.duration,
+                optional: true
+            }).play().observeState({
+                callback: sub(state)
+                    if state = "stopped"
+                        m.onUpdateView()
+                        m.node.scale = [0.7, 0.7]
+                        m.animator(`animate-details-show-${m.id}`).create({
+                            target: m,
+                            duration: m.props.duration,
+                            easeFunction: "linear",
+                            opacity: 1,
+                            scale: [1, 1],
+                            optional: true
+                        }).play()
+                    end if
+                end sub
+            })
+        end sub
+
+        ''''''''''
+        ' onUpdateView:
+        ' Override – refresh label texts.
+        ''''''''''
+        override sub onUpdateView()
+            m.children.title.refresh("fields.text")
+            m.children.description.refresh("fields.text")
+        end sub
+
+    end class
+
+end namespace
+
+' Powered by Rotor Framework™
+' © 2025 Balázs Molnár. All rights reserved.
+

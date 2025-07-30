@@ -1,0 +1,213 @@
+
+import "previewImage.bs"
+
+namespace ViewModels.Faders
+
+    class SlotState
+
+        index as integer
+        id as string
+        width = 200
+        height = 300
+        translation = [0, 0]
+        imageUrl = ""
+        blendColor = "0xFFFFFFFF"
+        isAssetReady = false
+
+        sub new(index)
+            m.index = index
+            m.id = `slot_${index}`
+        end sub
+
+        function getInitialSlotTemplate(props = invalid)
+            return {
+                id: m.id,
+                viewModel: ViewModels.Faders.PreviewImage,
+                fields: {
+                    opacity: props <> invalid ? 1 : 0 ' Initial opacity
+                },
+                props: {
+                    imageUrl: props?.imageUrl ?? m.imageUrl,
+                    width: props?.width ?? m.width,
+                    height: props?.height ?? m.height,
+                    translation: props?.translation ?? m.translation,
+                    blendColor: props?.blendColor ?? m.blendColor
+                },
+                fields: {
+                    slotIndex: m.index
+                },
+                observer: {
+                    fieldId: "isAssetReady",
+                    infoFields: ["slotIndex"],
+                    callback: sub(payload)
+                        if payload.isAssetReady = true
+                            m.getParentViewModel().setAssetIsReady(payload)
+                        end if
+                    end sub
+                }
+            }
+        end function
+
+    end class
+
+    class ImageFader extends ViewModel
+
+        props = {
+            initialImageUrl: "",
+            animDuration: 1,
+            delayIn: 0,
+            delayOut: 0
+        }
+
+        viewModelState = {
+            slotPointer: 0,
+            swapSlotPointer: sub() m.slotPointer = (m.slotPointer = 0 ? 1 : 0) : end sub,
+            getCurrentSlot: function() return m.slotStates[m.slotPointer] : end function,
+            getNextSlot: function() return m.slotStates[m.slotPointer = 0 ? 1 : 0] : end function,
+            slotStates: [
+                new ViewModels.Faders.SlotState(0),
+                new ViewModels.Faders.SlotState(1)
+            ]
+        }
+
+        override function template() as object
+            return {
+                fields: {
+                    isFadeAnimationCompleted: false
+                },
+                children: [
+                    m.viewModelState.slotStates[0].getInitialSlotTemplate(m.props), ' Initial props as default
+                    m.viewModelState.slotStates[1].getInitialSlotTemplate(invalid)
+                ]
+            }
+        end function
+
+        sub setAssetIsReady(payload)
+            m.viewModelState.slotStates[payload.slotIndex].isAssetReady = payload.isAssetReady
+
+            if m.viewModelState.getNextSlot().isAssetReady and m.viewModelState.getCurrentSlot().isAssetReady
+                m.startFadeAnimation()
+            end if
+        end sub
+
+        ' override sub onMountView()
+        ' end sub
+
+        ' override sub onUpdateView()
+        ' end sub
+
+        override sub setProps(newProps as object)
+            m.props.append(newProps)
+        end sub
+
+        sub fadeTo(payload)
+            ' Set props
+            m.setProps({
+                animDuration: payload.animDuration,
+                delayIn: payload.delayIn,
+                delayOut: payload.delayOut
+            })
+
+            ' Set next slot state props
+            nextSlot = m.viewModelState.getNextSlot()
+            nextSlot.append(payload)
+
+            ' Reset
+            nextSlot.isAssetReady = false
+
+            ' Set props for the next slot viewModel
+            nextWidget = m.children[nextSlot.id]
+            nextWidget.setProps({
+                opacity: 0,
+                height: nextSlot.height,
+                width: nextSlot.width,
+                translation: nextSlot.translation,
+                blendColor: nextSlot.blendColor,
+                imageUrl: nextSlot.imageUrl
+            })
+
+        end sub
+
+        sub startFadeAnimation()
+            currentSlot = m.viewModelState.getCurrentSlot()
+            nextSlot = m.viewModelState.getNextSlot()
+
+            currentWidget = m.children[currentSlot.id]
+            nextWidget = m.children[nextSlot.id]
+
+            if m.props.animDuration = 0
+                currentWidget.node.opacity = 0
+                nextWidget.node.opacity = 1
+                m.getParentViewModel().setVideoVisibility(false)
+                m.viewModelState.swapSlotPointer()
+                m.getViewModel().notifyState()
+
+            else
+                m.animator(`change-slots-visibility`).timeline({
+                    duration: m.props.animDuration,
+                    easeFunction: "linear"
+                }).add({
+                    target: nextWidget,
+                    opacity: 1,
+                    delay: m.props.delayIn ?? 0
+                }).add({
+                    target: currentWidget,
+                    opacity: 0,
+                    delay: m.props.delayOut ?? 0
+                }).play().observeState({
+                    callback: sub(state)
+                        if state = "stopped"
+                            m.getParentViewModel().setVideoVisibility(false)
+                            m.viewModelState.swapSlotPointer()
+                            m.getViewModel().notifyState()
+                        end if
+                    end sub
+                })
+            end if
+
+        end sub
+
+        sub hideCurrent()
+            m.animateCurrent(false)
+        end sub
+
+        sub showCurrent()
+            m.animateCurrent(true)
+        end sub
+
+        sub animateCurrent(shouldShow as boolean)
+            currentSlot = m.viewModelState.getCurrentSlot()
+            currentWidget = m.children[currentSlot.id]
+
+            if shouldShow = false
+                m.getParentViewModel().setVideoVisibility(true)
+            end if
+
+            m.shouldShow = shouldShow
+            m.animator(`change-slots-visibility`).create({
+                duration: m.props.animDuration,
+                easeFunction: "linear",
+                target: currentWidget,
+                opacity: shouldShow ? 1 : 0
+            }).play().observeState({
+                callback: sub(state)
+                    if state = "stopped" and m.shouldShow = true
+                        m.getParentViewModel().setVideoVisibility(false)
+                    end if
+                end sub
+            })
+        end sub
+
+
+        sub notifyState()
+            m.node.isFadeAnimationCompleted = true
+        end sub
+
+        sub pause()
+            m.animator(`change-slots-visibility`).stop()
+        end sub
+
+    end class
+
+
+end namespace

@@ -1,0 +1,14 @@
+class DefaultCarouselModel extends Model
+
+    state = {
+        focused: {
+            content: invalid,
+            id: "",
+            cardCarouselId: "",
+            rowCarouselId: "",
+            displayType: "",
+            showFocusIndicator: true
+        }
+    }
+end class
+

@@ -1,0 +1,27 @@
+namespace ViewModels
+
+    class PageMenuItemExit extends PageMenuItem
+
+        override sub onMountView()
+            m.dialogDispatcher = m.getDispatcher("dialog")
+        end sub
+
+        override sub onDestroyView()
+            m.dialogDispatcher.destroy()
+        end sub
+
+
+        override sub onSelected()
+
+            m.dialogDispatcher.dispatch({
+                type: IntentTypes.Dialog.Modal.SHOW_DIALOG,
+                payload: {
+                    dialogType: Const.Dialog.DialogType.GENERAL,
+                    proceedType: Const.Dialog.ProceedType.EXIT
+                }
+            })
+        end sub
+
+    end class
+
+end namespace

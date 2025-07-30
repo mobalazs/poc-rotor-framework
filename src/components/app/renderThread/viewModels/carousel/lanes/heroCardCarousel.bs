@@ -1,0 +1,72 @@
+import "../cards/heroCard.bs"
+import "additionalFeatures/details/heroDetails.bs"
+
+namespace ViewModels.Carousel
+
+    class HeroCardCarousel extends ViewModels.Carousel.DefaultCardCarousel
+
+        override sub onCreateView()
+            ' Modify inherited  props
+            m.props.config.display = {
+                hero: {
+                    viewModel: ViewModels.Carousel.HeroCard,
+                    size: UI.components.carousel.row.hero.card.width
+                }
+            }
+        end sub
+
+        ' Hero Carousel template differ from DefaultCardCarousel
+        override function template() as object
+
+            template = super.template()
+            template.focus.group.defaultFocusId = "details"
+
+            template.children = [
+                {
+                    id: "details",
+                    viewModel: ViewModels.Carousel.HeroDetails,
+                    fields: {
+                        translation: [0, -300]
+                    }
+                }, {
+                    id: "slotContainerWrapper",
+                    nodeType: "Group",
+                    children: [
+                        {
+                            nodeType: "Group",
+                            id: "slotContainer"
+                        }
+                    ]
+                }
+            ]
+
+            return template
+
+        end function
+
+        override sub onFocusChangedHook(isFocused)
+            ' do nothing
+        end sub
+
+        override sub onFocusHook()
+            super.onFocusHook()
+            m.dispatchFocusedCard()
+        end sub
+
+        override sub dispatchFocusedCard()
+            m.viewModelState.dispatcher[m.props.dispatcherId].dispatch({
+                type: IntentTypes.CAROUSEL.SET_FOCUSED_CARD,
+                payload: {
+                    content: m.getFocusedContent(),
+                    id: m.getFocusedWidget().id,
+                    cardCarouselId: m.id,
+                    rowCarouselId: m.getParentViewModel().id,
+                    showFocusIndicator: false,
+                    displayType: m.props.content.displayType
+                }
+            })
+        end sub
+
+    end class
+
+end namespace
