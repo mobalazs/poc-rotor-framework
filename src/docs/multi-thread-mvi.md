@@ -2,9 +2,12 @@
 
 ← [Back to Documentation](README.md#-learn-more)
 
+
 ## Overview
 
 The Multi-Thread MVI (Model-View-Intent) pattern is the heart of the Rotor Framework's state management system. It enables thread-safe communication between the render thread (UI) and task threads (business logic) using a dispatcher-based architecture. This pattern ensures that heavy operations don't block the UI while maintaining synchronized state across threads.
+
+The framework implementation follows the classic structure of the dispatcher, which consists of **model and reducer**, and also implements the classic structure of the reducer, which consists of **middleware and reducer function**.
 
 ## The MVI Pattern
 
@@ -14,6 +17,9 @@ The Multi-Thread MVI (Model-View-Intent) pattern is the heart of the Rotor Frame
 2. **View**: UI components that display the state (render thread)
 3. **Intent**: Actions that describe what should happen
 4. **Dispatcher**: Thread-safe communication bridge between render and task threads
+
+![Rotor Framework Multi-Thread MVI](images/Rotor_Framework_multi-thread_MVI.jpeg)
+
 
 ### Thread Architecture
 

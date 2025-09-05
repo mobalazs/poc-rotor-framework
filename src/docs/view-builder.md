@@ -8,6 +8,8 @@ The Rotor ViewBuilder is the foundation of UI construction in the framework. It 
 
 ## 🧱  Concepts
 
+![Rotor Framework ViewBuilder](images/Rotor_Framework_ViewBuilder.jpeg)
+
 ## Widget
 
 In Rotor’s viewBuilder, the smallest UI unit is a **widget**, and every widget is defined by a plain BrightScript **object**. This object describes the intended SceneGraph node and its behavior. The keys of this object each trigger different features: some are core features present in every widget, while others are optional. These additional keys serve to decorate the widget with behavior or styling traits depending on the plugin or concern they represent.
